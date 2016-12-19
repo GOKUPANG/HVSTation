@@ -309,6 +309,9 @@
               
               weakSelf.blueLabel.text = @"Connecting...";
               
+              NSLog(@"2333");
+              
+              
               
               weakSelf.baby.stop(0);
 
