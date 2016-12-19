@@ -309,7 +309,7 @@
               
               weakSelf.blueLabel.text = @"Connecting...";
               
-              NSLog(@"2333");
+              NSLog(@"2333232323");
               
               
               
