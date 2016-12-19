@@ -1,0 +1,46 @@
+//
+//  PrefixHeader.pch
+//  HV station
+//
+//  Created by sswukang on 2016/10/19.
+//  Copyright © 2016年 sswukang. All rights reserved.
+//
+
+#ifndef PrefixHeader_pch
+#define PrefixHeader_pch
+#import "HRConst.h"
+#import "HRHeard.h"
+
+
+
+
+#ifdef DEBUG
+#define NSLog(...) NSLog(__VA_ARGS__)
+#else
+#define NSLog(...)
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#endif /* PrefixHeader_pch */
