@@ -17,64 +17,73 @@
 @interface HomeController ()<UIGestureRecognizerDelegate, UIAlertViewDelegate>
 
 /** 背景图片 */
-@property(nonatomic, weak) UIImageView *backgroundImageView;
+@property(nonatomic, weak) UIImageView * backgroundImageView;
 /** 导航条 */
-@property(nonatomic, weak) UIView *navBar;
+@property(nonatomic, weak) UIView * navBar;
 /** logo图片 */
-@property(nonatomic, weak) UIImageView *logoImageView;
+@property(nonatomic, weak) UIImageView * logoImageView;
 /** 用户名label */
-@property(nonatomic, weak) UILabel *nameLabel;
+@property(nonatomic, weak) UILabel * nameLabel;
 /** 导航条下的自定义线 */
-@property(nonatomic, weak) UIView *lineView;
+@property(nonatomic, weak) UIView * lineView;
 /** life按钮 */
-@property(nonatomic, weak) UIButton *lifeButton;
+@property(nonatomic, weak) UIButton * lifeButton;
 /** 中间的logo图片 */
-@property(nonatomic, weak) UIImageView *middleImageView;
+@property(nonatomic, weak) UIImageView * middleImageView;
 /** right按钮 */
 @property(nonatomic, weak) UIButton *rightButton;
+
+// 时间 Label 添加于 12月21日
+
+@property(nonatomic,weak) UILabel * TimeLabel ;
+
+//  小时label
+@property(nonatomic,strong) UILabel * HourLabel ;
+
+
 
 /** 上按钮 */
 //@property(nonatomic, weak) HRUpButton *upButton;
 /** 上按钮 */
-@property(nonatomic, weak) UIButton *upButton;
+@property(nonatomic, weak) UIButton * upButton;
 /** 下按钮 */
-@property(nonatomic, weak) UIButton *downButton;
+@property(nonatomic, weak) UIButton * downButton;
 /** 左按钮 */
-@property(nonatomic, weak) UIButton *lifeFsButton;
+@property(nonatomic, weak) UIButton * lifeFsButton;
 /** 右按钮 */
-@property(nonatomic, weak) UIButton *rightFsButton;
+@property(nonatomic, weak) UIButton * rightFsButton;
 /** warn按钮 */
-@property(nonatomic, weak) UIButton *warnButton;
+@property(nonatomic, weak) UIButton * warnButton;
 /** cool按钮 */
-@property(nonatomic, weak) UIButton *coolButton;
+@property(nonatomic, weak) UIButton * coolButton;
 /** auto按钮 */
-@property(nonatomic, weak) UIButton *autoButton;
+@property(nonatomic, weak) UIButton * autoButton;
 /** c/f刷新按钮 */
-@property(nonatomic, weak) UIButton *updateButton;
+@property(nonatomic, weak) UIButton * updateButton;
 /** 日期时间按钮 */
-@property(nonatomic, weak) UIButton *dateButton;
+@property(nonatomic, weak) UIButton * dateButton;
 /** 温度按钮 */
-@property(nonatomic, weak)  UIButton *tempButton;
+@property(nonatomic, weak)  UIButton * tempButton;
 /** 湿度按钮 */
-@property(nonatomic, weak) UIButton *humidityButton;
+@property(nonatomic, weak) UIButton * humidityButton;
 /** 闹钟按钮 */
-@property(nonatomic, weak) UIButton *clockButton;
+@property(nonatomic, weak) UIButton * clockButton;
 /** my Date按钮 */
-@property(nonatomic, weak) UIButton *myDateButton;
+@property(nonatomic, weak) UIButton * myDateButton;
 /** about HV Station按钮 */
-@property(nonatomic, weak) UIButton *hvStationButton;
+@property(nonatomic, weak) UIButton * hvStationButton;
 /** 记录当前点击的按钮 */
-@property(nonatomic, weak) UIButton *currentButton;
+@property(nonatomic, weak) UIButton * currentButton;
 
 /** 记录当前点击的是左边按钮还是右边按钮 */
 
-@property(nonatomic, weak) UIButton *leftRightButton;
+@property(nonatomic, weak) UIButton * leftRightButton;
 /** 色块横框 */
-@property(nonatomic, strong) UIView *popView;
+@property(nonatomic, strong) UIView * popView;
 /** 色块竖框 */
-@property(nonatomic, strong) UIView *popVView;
+@property(nonatomic, strong) UIView * popVView;
 /** 色块黄色横框 */
-@property(nonatomic, strong) UIView *popWView;
+@property(nonatomic, strong) UIView * popWView;
 
 /** 导航条上的蓝牙连接label */
 @property (nonatomic, strong) UILabel * blueLabel;
@@ -87,6 +96,12 @@
 
 @property (nonatomic, copy) NSString * setedMinute;
 
+
+//定时器
+
+@property (nonatomic, strong)NSTimer * timer ;
+
+
 @end
 
 @implementation HomeController
@@ -98,17 +113,52 @@
    self.baby = [BabyBluetooth shareBabyBluetooth];
     //设置蓝牙委托
     [self babySetDelegate];
+    
+    
+    //启动定时器  每一分钟改变 时间
+    [self NStimer];
+    
 }
 
-
-
+//页面将要进入前台，开启定时器
 -(void)viewWillAppear:(BOOL)animated
 {
-      [self setUpViews];
+    //开启定时器
+    [self.timer setFireDate:[NSDate distantPast]];
+    
+    [self setUpViews];
+
 }
 
 
+//页面消失，进入后台不显示该页面，关闭定时器
+-(void)viewDidDisappear:(BOOL)animated
+{
+    //关闭定时器
+    [self.timer setFireDate:[NSDate distantFuture]];
+}
+
+-(void)NStimer
+{
+     _timer= [NSTimer scheduledTimerWithTimeInterval:30 target:self selector:@selector(updateTime) userInfo:nil repeats:YES];
+}
+
+
+
+-(void)updateTime
+{
+    NSLog(@"定时器事件");
+    
+    NSString * currentTime = [self loadCurrentDate];
+    
+    NSString * currentMoment = [currentTime substringWithRange:NSMakeRange(11, 5)];
+    
+    self.HourLabel.text = currentMoment ;
+}
+
 #pragma mark -重点 发送数据给蓝牙
+
+//增加了 温感喜好
 
 
 -(void)sendDataToBlueToothWithcommand:(Byte )command
@@ -116,12 +166,15 @@
                                 model:(Byte )model
                                  hour:(Byte )hour
                               miniute:(Byte )minute
+                          temperFavor:(Byte )temperFavor
+
+
 {
-    Byte byte[14] ;
+    Byte byte[15] ;
     byte[0] = 0xaa;
     //帧长度为2
     byte[1] = 0x00;
-    byte[2] = 0x09;
+    byte[2] = 0x0a;
     //0x02表示APP发起
     byte[3] = 0x02;
     //控制码
@@ -146,23 +199,28 @@
     byte[9]  = 0x01;
     byte[10] = hour;
     byte[11] = minute;
-    //校验码
     
+    
+    
+    //自动档温度喜好值 默认0x00
+    byte[12] = temperFavor;
+    
+    //校验码
     Byte checkMark = 0;
 
-    for (int i = 3; i<=11; i++) {
+    for (int i = 3; i<=12; i++) {
         checkMark = checkMark + byte[i];
         
     }
     
-    byte[12] = checkMark;
+    byte[13] = checkMark;
     
     //帧结束符
-    byte[13] =0x55;
+    byte[14] =0x55;
     
     
     
-    NSData * myData = [NSData dataWithBytes:byte length:14];
+    NSData * myData = [NSData dataWithBytes:byte length:15];
     
     NSLog(@"%@",myData);
     
@@ -280,7 +338,6 @@
 
           weakSelf.blueLabel.text = @"Connecting...";
               
-              weakSelf.baby.stop(0);
 
           
           return ;
@@ -313,7 +370,9 @@
               
               
               
-              weakSelf.baby.stop(0);
+              //加上这句话虽然能切换但是不能发现特征和收发数据  
+              
+            //  weakSelf.baby.stop(0);
 
               return ;
               
@@ -364,11 +423,12 @@
     //连接蓝牙失败的回调
     
     [_baby setBlockOnFailToConnect:^(CBCentralManager *central, CBPeripheral *peripheral, NSError *error) {
+        
+        
         if ([peripheral.name hasPrefix:@"H"]) {
             weakSelf.blueLabel.text = @"Fail to connect";
 
         }
-        
         
     }];
     
@@ -442,6 +502,8 @@
     
     [_baby setBlockOnDidWriteValueForCharacteristic:^(CBCharacteristic *characteristic, NSError *error) {
         
+        
+        
         if (error == nil)
         {
             NSLog(@"写命令 操作成功!");
@@ -451,8 +513,6 @@
         {
             NSLog(@"写命令 操作失败!%@",error.localizedDescription);
         }
-
-        
         
     }];
     
@@ -472,10 +532,15 @@
     
     //把nsdata数据转化为 byte数组
     
+    
+    //Data 可以强转为byte数组
+    
     Byte * byte = (Byte * )[recieveData bytes];
     
+    //%s 是 字符数组
+    NSLog(@"byte %s",byte);
     
-    NSLog(@"byteeeeeeee%s",byte);
+    //那种匿名的快乐  听阴天说什么 在昏暗的想我  阴天快乐
     
     for(int i=0;i<[recieveData length];i++)
         
@@ -488,14 +553,8 @@
    // 2 判断帧长度
    // 3 判断帧结束符
     
-    
-    
-    
     //写一个根据检查返回模式改变按钮状态的方法
     [ self  changeBtnStateWithRecieveByte:byte];
-    
-    
-    
     
     NSLog(@"蓝牙发过来的数据%@",Characteristic.value);
     
@@ -513,7 +572,6 @@
     
     // 设置日期格式
     [dateFormatter setDateFormat:@"YYYY-MM-dd hh:mm:ss"];
-    
     
     NSString *dateString = [dateFormatter stringFromDate:[NSDate date]];
     //	DDLogDebug(@"currentDate------------%@", [NSDate date]);
@@ -533,45 +591,47 @@
 -(void)changeBtnStateWithRecieveByte:(Byte *)Recievebyte
 {
     
-    // 这个是判断模式的字节 下标为 6
-    Byte model = Recievebyte[6];
+   
+    //判断控制码 是否为查询信息的帧
     
+    Byte command  = Recievebyte[4];
+    
+    //
+    if (command == 0xa1) {
+        
+        Byte temperDefault = Recievebyte[12];
+        
+        //字节转化为字符串
+        
+        NSString * temp = [NSString stringWithFormat:@"%hhu",temperDefault];
+        
+        [kUserDefault setObject:temp forKey:defaultTemper];
+    }
+    
+
+    
+     // 这个是判断模式的字节 下标为 6
+    Byte model = Recievebyte[6];
     
     //暖风
     if (model == 0x01)
     {
         NSLog(@"暖风状态");
         
-        
-        
-        
-        
         [kUserDefault setValue:@"warm" forKey:SelectedModel];
-        
-        
-        
-        
-        
-        
         
         self.warnButton.selected = YES;
         
         
-        //如果是暖风，就让 四个上下左右四个按钮都可以点
+        //如果是暖风，就让 上下两个按钮都可以点   修改于12月19日
         
         self.upButton.enabled      = YES;
         
         self.downButton.enabled    = YES;
         
-        self.lifeFsButton.enabled  = YES;
-        
-        self.rightFsButton.enabled = YES ;
-        
-        //然后 冷风按钮  自动按钮不可点
-        
-        
-        
-        
+        //  self.lifeFsButton.enabled  = YES;
+        //  self.rightFsButton.enabled = YES ;
+        //  然后 冷风按钮  自动按钮不可点
         self.coolButton.enabled = NO;
         self.autoButton.enabled = NO;
         
@@ -702,6 +762,8 @@
 //初始化
 - (void)setUpViews
 {
+    
+    
     self.view.backgroundColor = [UIColor blackColor];
     //背景图片
     UIImageView *backgroundImageView = [[UIImageView alloc] init];
@@ -771,10 +833,16 @@
     self.lineView = lineView;
     
     //life按钮
-    UIButton *lifeButton = [self setupButtonWithBackgroundImage:@"life" title:@"left" tag:10];
+    UIButton *lifeButton = [self setupButtonWithBackgroundImage:@"life" title:@"Left" tag:10];
     
     [lifeButton setBackgroundImage:[UIImage imageNamed:@"life-right交互"] forState:UIControlStateSelected];
     self.lifeButton = lifeButton;
+    
+    //时间框
+  //  UILabel * timeLabel = [[UILabel alloc]init];
+    
+    
+    
     
     //中间的logo图片
     UIImageView *middleImageView = [[UIImageView alloc] init];
@@ -782,8 +850,11 @@
     [self.navBar addSubview:middleImageView];
     self.middleImageView = middleImageView;
     
+    self.middleImageView.hidden = YES;
+    
+    
     //right按钮
-    UIButton *rightButton = [self setupButtonWithBackgroundImage:@"right" title:@"right" tag:11];
+    UIButton *rightButton = [self setupButtonWithBackgroundImage:@"right" title:@"Right" tag:11];
     [rightButton setBackgroundImage:[UIImage imageNamed:@"life-right交互"] forState:UIControlStateSelected];
     self.rightButton = rightButton;
     
@@ -804,16 +875,15 @@
         
     }
     
-    
-    
-    
-    
     //上按钮
     //    HRUpButton *upButton = [ buttonWithType:UIButtonTypeCustom];
     //    upButton.tag = 12;
     //    [upButton addTarget:self action:@selector(buttonClick:) forControlEvents:UIControlEventTouchUpInside];
     //    [self addSubview:upButton];
     //    self.upButton = upButton;
+    
+    
+    
     
     UIButton *upButton = [self setupButtonWithBackgroundImage:@"上" title:@"T." tag:12];
     [upButton setImage:[UIImage imageNamed:@"首页上"] forState:UIControlStateNormal];
@@ -865,16 +935,16 @@
     
     
     //warn按钮
-    UIButton *warnButton = [self setupButtonWithBackgroundImage:@"wam" title:@"warn" tag:16];
+    UIButton *warnButton = [self setupButtonWithBackgroundImage:@"wam" title:@"Warm" tag:16];
     [warnButton setBackgroundImage:[UIImage imageNamed:@"warm交互"] forState:UIControlStateSelected];
     self.warnButton = warnButton;
     
     //cool按钮
-    UIButton *coolButton = [self setupButtonWithBackgroundImage:@"cool" title:@"cool" tag:17];
+    UIButton *coolButton = [self setupButtonWithBackgroundImage:@"cool" title:@"Cool" tag:17];
     [coolButton setBackgroundImage:[UIImage imageNamed:@"cool交互"] forState:UIControlStateSelected];
     self.coolButton = coolButton;
     //auto按钮
-    UIButton *autoButton = [self setupButtonWithBackgroundImage:@"auto" title:@"auto" tag:18];
+    UIButton *autoButton = [self setupButtonWithBackgroundImage:@"auto" title:@"Auto" tag:18];
     [autoButton setBackgroundImage:[UIImage imageNamed:@"auto交互"] forState:UIControlStateSelected];
     self.autoButton = autoButton;
     
@@ -887,6 +957,7 @@
     self.updateButton = updateButton;
     self.updateButton.titleLabel.font = [UIFont fontWithName:@"PingFangSC-Thin" size:15];
     
+    self.updateButton.hidden = YES;
     
     //日期时间按钮
     
@@ -901,9 +972,26 @@
     dateButton.imageEdgeInsets = UIEdgeInsetsMake(-23.0, 12 + 1.5, 0, 0);
     dateButton.titleEdgeInsets = UIEdgeInsetsMake(24 - 17, (-90 *0.5 + 20) +11, 0, 0);
     dateButton.userInteractionEnabled = NO;
+    
+    
+    
     UILabel *timeLabel = [[UILabel alloc] init];
     
-    timeLabel.font = [UIFont fontWithName:@"PingFangSC-Thin" size:9.f];
+    self.TimeLabel = timeLabel ;
+    
+    timeLabel.font = [UIFont fontWithName:@"PingFangSC-Thin" size:23.f];
+    
+    
+    self.HourLabel =  [[UILabel alloc ]init];
+    
+    self.HourLabel.text = currentMoment;
+    
+    self.HourLabel.font = [UIFont fontWithName:@"PingFangSC-Thin" size:23.f];
+    
+    //字体居中
+    self.HourLabel.textAlignment = NSTextAlignmentCenter ;
+    
+    [self.view addSubview:self.HourLabel];
     
     
     
@@ -923,24 +1011,45 @@
     NSString * titleText = currentDay;
     
     NSMutableDictionary *dict = [NSMutableDictionary dictionary];
-    dict[NSFontAttributeName] = [UIFont fontWithName:@"PingFangSC-Thin" size:9.f];
+    dict[NSFontAttributeName] = [UIFont fontWithName:@"PingFangSC-Thin" size:23.f];
     CGSize size = [titleText sizeWithAttributes:dict];
     timeLabel.textAlignment = NSTextAlignmentCenter;
     timeLabel.frame = CGRectMake(0, 90 *0.5 - 14 , size.width, size.height);
     timeLabel.textColor = [UIColor colorWithRed:51 / 255.0 green:51 / 255.0  blue:51 / 255.0  alpha:1.0];
-    [dateButton addSubview:timeLabel];
+    
+    
+    
+    
+   // [dateButton addSubview:timeLabel];
+    
+    
+    [self.view addSubview:self.TimeLabel];
+    
+    
+    
     self.dateButton = dateButton;
     
+    
+    //隐藏
+    self.dateButton.hidden = YES;
+    
+    
     //温度按钮
-    UIButton *tempButton = [self setupButtonWithBackgroundImage:@"温度块" title:@"131℉" tag:21];
+    UIButton *tempButton = [self setupButtonWithBackgroundImage:@"温度块" title:@"113.0℉" tag:21];
+    
+    [tempButton setTitleColor:[UIColor purpleColor] forState:UIControlStateNormal];
+    
     tempButton.imageEdgeInsets = UIEdgeInsetsMake(-2, -2, 0, 0);
     tempButton.titleEdgeInsets = UIEdgeInsetsMake(0, 2, 0, 0);
-    [tempButton setImage:[UIImage imageNamed:@"温度"] forState:UIControlStateNormal];
+    [tempButton setImage:[UIImage imageNamed:@"cf转换"] forState:UIControlStateNormal];
     tempButton.userInteractionEnabled = NO;
     
     self.tempButton = tempButton;
     //湿度按钮
     UIButton *humidityButton = [self setupButtonWithBackgroundImage:@"湿度快" title:@"75RH" tag:22];
+    
+    
+    [humidityButton setTitleColor:[UIColor purpleColor] forState:UIControlStateNormal];
     humidityButton.imageEdgeInsets = UIEdgeInsetsMake(-2, -2, 0, 0);
     humidityButton.titleEdgeInsets = UIEdgeInsetsMake(0, 2, 0, 0);
     [humidityButton setImage:[UIImage imageNamed:@"湿度"] forState:UIControlStateNormal];
@@ -948,10 +1057,13 @@
     self.humidityButton = humidityButton;
     
     //闹钟按钮
-    UIButton *clockButton = [self setupButtonWithBackgroundImage:@"计时快" title:@"88:88" tag:23];
+    UIButton *clockButton = [self setupButtonWithBackgroundImage:@"计时快" title:@"--:--" tag:23];
+    
+    [clockButton setTitleColor:[UIColor purpleColor] forState:UIControlStateNormal];
+    
     clockButton.imageEdgeInsets = UIEdgeInsetsMake(-2, -2, 0, 0);
     clockButton.titleEdgeInsets = UIEdgeInsetsMake(0, 2, 0, 0);
-    [clockButton setImage:[UIImage imageNamed:@"计时"] forState:UIControlStateNormal];
+    [clockButton setImage:[UIImage imageNamed:@"定时"] forState:UIControlStateNormal];
     clockButton.userInteractionEnabled = YES;
     self.clockButton = clockButton;
     //my Date按钮
@@ -967,7 +1079,7 @@
 {
     UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
     [btn setBackgroundImage:[UIImage imageNamed:image] forState:UIControlStateNormal];
-    btn.titleLabel.font = [UIFont fontWithName:@"PingFangSC-Thin" size:18.f];
+    btn.titleLabel.font = [UIFont fontWithName:@"PingFangSC-Thin" size:16.f];
     [btn setTitle:title forState:UIControlStateNormal];
     btn.tag = tag;
     [btn setTitleColor:[UIColor colorWithRed:51 / 255.0 green:51 / 255.0  blue:51 / 255.0  alpha:1.0] forState:UIControlStateNormal];
@@ -980,6 +1092,7 @@
 - (void)viewDidLayoutSubviews
 {
     [super viewDidLayoutSubviews];
+    
     //导航条
     [self.navBar mas_makeConstraints:^(MASConstraintMaker *make) {
         make.left.equalTo(self.view);
@@ -997,31 +1110,33 @@
     
     //用户名label
     [self.nameLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+        
         make.centerY.equalTo(self.navBar);
         make.right.equalTo(self.view).offset(-10);
         make.height.mas_equalTo(HRCommonScreenH * 55);
         make.width.mas_equalTo(HRUIScreenW * 0.5);
+        
     }];
     
     //导航条下的自定义线
     [self.lineView mas_makeConstraints:^(MASConstraintMaker *make) {
+        
         make.top.equalTo(self.navBar.mas_bottom);
         make.left.right.equalTo(self.view);
         make.height.mas_equalTo(1);
         
+         }];
+        
     //斌添加 导航条正在连接label
     [self.blueLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+        
         make.centerX.equalTo(self.navBar);
         make.centerY.equalTo(self.navBar);
         make.height.mas_equalTo(HRCommonScreenH * 55);
         make.width.mas_equalTo(HRUIScreenW * 0.3);
-
         
     }];
-        
-        
-        
-    }];
+    
     //背景图
     [self.backgroundImageView mas_makeConstraints:^(MASConstraintMaker *make) {
         make.left.right.equalTo(self.view);
@@ -1029,36 +1144,108 @@
         make.top.equalTo(self.lineView.mas_bottom);
     }];
     
-    //中间的logo图片
-    [self.middleImageView mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.centerX.equalTo(self.view);
-        make.top.equalTo(self.view).offset(HRCommonScreenH * 95);
-        make.height.mas_equalTo(30 *HRCommonScreenH);
-        make.width.mas_equalTo(36 *HRCommonScreenW);
+    
+    
+    //温度按钮
+    [self.tempButton mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.left.equalTo(self.view).offset(20 *HRCommonScreenW);
+        make.top.equalTo(self.view).offset(HRCommonScreenH *90 +3 );
+        make.height.mas_equalTo(49 *HRCommonScreenH);
+        make.width.mas_equalTo(76 *HRCommonScreenW);
     }];
     
+    //湿度按钮
+    [self.humidityButton mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.left.equalTo(self.view).offset(150 *HRCommonScreenW);
+        make.top.equalTo(self.view).offset(HRCommonScreenH *90+3);
+        make.height.mas_equalTo(49 *HRCommonScreenH);
+        make.width.mas_equalTo(76 *HRCommonScreenW);
+    }];
+    
+    //闹钟按钮
+    [self.clockButton mas_makeConstraints:^(MASConstraintMaker *make) {
+        //make.left.equalTo(self.view).offset(237 *HRCommonScreenW);
+        make.right.equalTo(self.view).offset(-20 *HRCommonScreenW);
+
+        make.top.equalTo(self.view).offset(HRCommonScreenH *90+3);
+        make.height.mas_equalTo(49 *HRCommonScreenH);
+        make.width.mas_equalTo(76 *HRCommonScreenW);
+    }];
+    
+    
+    //日期时间按钮
+    [self.dateButton mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.left.equalTo(self.view).offset(237 *HRCommonScreenW);
+        make.top.equalTo(self.view).offset(HRCommonScreenH *488);
+        make.height.mas_equalTo(45 );
+        make.width.mas_equalTo(45 );
+    }];
+
     //life按钮
     [self.lifeButton mas_makeConstraints:^(MASConstraintMaker *make) {
         make.centerY.equalTo(self.middleImageView);
-        make.left.equalTo(self.view).offset(65);
-        make.top.equalTo(self.view).offset(HRCommonScreenH *86);
+        make.left.equalTo(self.view).offset(65 * HRCommonScreenW);
+       // make.top.equalTo(self.view).offset(HRCommonScreenH *86);
+        //86 + 110
+        make.top.equalTo(self.view).offset(HRCommonScreenH *216);
+
         make.height.mas_equalTo(48 *HRCommonScreenH);
         make.width.mas_equalTo(74 *HRCommonScreenW);
     }];
     
     //right按钮
     [self.rightButton mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.centerY.equalTo(self.middleImageView);
-        make.right.equalTo(self.view).offset(-65);
-        make.top.equalTo(self.view).offset(HRCommonScreenH *86);
+      //  make.centerY.equalTo(self.middleImageView);
+        make.right.equalTo(self.view).offset(-65 * HRCommonScreenW);
+        make.top.equalTo(self.view).offset(HRCommonScreenH *216);
         make.height.mas_equalTo(48 *HRCommonScreenH);
         make.width.mas_equalTo(74 *HRCommonScreenW);
     }];
     
+    
+    //时间 label
+    [self.TimeLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+        
+        make.centerX.equalTo(self.view);
+        make.bottom.equalTo(self.rightButton).offset(-40 * HRCommonScreenH);
+        make.height.mas_equalTo(40 * HRCommonScreenH);
+        make.width.mas_equalTo(120 * HRCommonScreenW);
+        
+    }];
+    
+    
+    //小时label
+    
+    [self.HourLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+        
+        make.centerX.equalTo(self.view);
+        
+        make.bottom.equalTo(self.rightButton).offset(-70 * HRCommonScreenH);
+
+        make.height.mas_equalTo(40 * HRCommonScreenH);
+        make.width.mas_equalTo(120 * HRCommonScreenW);
+        
+        
+    }];
+    
+    
+    
+    
+    //中间的logo图片
+    [self.middleImageView mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.centerX.equalTo(self.view);
+        make.top.equalTo(self.view).offset(HRCommonScreenH * 95);
+        make.top.equalTo(self.view).offset(HRCommonScreenH * 95 + 110 *HRCommonScreenH);
+
+        make.height.mas_equalTo(30 *HRCommonScreenH);
+        make.width.mas_equalTo(36 *HRCommonScreenW);
+    }];
+
+    
     //上按钮
     [self.upButton mas_makeConstraints:^(MASConstraintMaker *make) {
         make.centerX.equalTo(self.view);
-        make.top.equalTo(self.view).offset(HRCommonScreenH *157);
+        make.top.equalTo(self.view).offset(HRCommonScreenH *157+ 120 *HRCommonScreenH);
         make.height.mas_equalTo(63 *HRCommonScreenH);
         make.width.mas_equalTo(63 *HRCommonScreenW);
     }];
@@ -1074,7 +1261,7 @@
     //左按钮
     [self.lifeFsButton mas_makeConstraints:^(MASConstraintMaker *make) {
         make.left.equalTo(self.lifeButton);
-        make.top.equalTo(self.view).offset(HRCommonScreenH *210);
+        make.top.equalTo(self.view).offset(HRCommonScreenH *210+ 120 *HRCommonScreenH);
         make.height.mas_equalTo(52 *HRCommonScreenH);
         make.width.mas_equalTo(68 *HRCommonScreenW);
     }];
@@ -1082,7 +1269,7 @@
     //右按钮
     [self.rightFsButton mas_makeConstraints:^(MASConstraintMaker *make) {
         make.right.equalTo(self.rightButton);
-        make.top.equalTo(self.view).offset(HRCommonScreenH *210);
+        make.top.equalTo(self.view).offset(HRCommonScreenH *210+ 120 *HRCommonScreenH);
         make.height.mas_equalTo(52 *HRCommonScreenH);
         make.width.mas_equalTo(68 *HRCommonScreenW);
     }];
@@ -1090,15 +1277,7 @@
     //wam按钮
     [self.warnButton mas_makeConstraints:^(MASConstraintMaker *make) {
         make.left.equalTo(self.view).offset(72 *HRCommonScreenW);
-        make.top.equalTo(self.view).offset(HRCommonScreenH *347);
-        make.height.mas_equalTo(47 *HRCommonScreenH);
-        make.width.mas_equalTo(84 *HRCommonScreenW);
-    }];
-    
-    //wam按钮
-    [self.warnButton mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.left.equalTo(self.view).offset(72 *HRCommonScreenW);
-        make.top.equalTo(self.view).offset(HRCommonScreenH *347);
+        make.top.equalTo(self.view).offset(HRCommonScreenH *347+ 120 *HRCommonScreenH);
         make.height.mas_equalTo(47 *HRCommonScreenH);
         make.width.mas_equalTo(84 *HRCommonScreenW);
     }];
@@ -1106,7 +1285,7 @@
     //cool按钮
     [self.coolButton mas_makeConstraints:^(MASConstraintMaker *make) {
         make.left.equalTo(self.view).offset(218 *HRCommonScreenW);
-        make.top.equalTo(self.view).offset(HRCommonScreenH *347);
+        make.top.equalTo(self.view).offset(HRCommonScreenH *347+ 120 *HRCommonScreenH);
         make.height.mas_equalTo(47 *HRCommonScreenH);
         make.width.mas_equalTo(84 *HRCommonScreenW);
     }];
@@ -1114,7 +1293,7 @@
     //auto按钮
     [self.autoButton mas_makeConstraints:^(MASConstraintMaker *make) {
         make.centerX.equalTo(self.view);
-        make.top.equalTo(self.view).offset(HRCommonScreenH *418);
+        make.top.equalTo(self.view).offset(HRCommonScreenH *418+ 120 *HRCommonScreenH);
         make.height.mas_equalTo(47 *HRCommonScreenH);
         make.width.mas_equalTo(84 *HRCommonScreenW);
     }];
@@ -1124,35 +1303,6 @@
         make.top.equalTo(self.view).offset(HRCommonScreenH *488);
         make.height.mas_equalTo(45 );
         make.width.mas_equalTo(45 );
-    }];
-    
-    //日期时间按钮
-    [self.dateButton mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.left.equalTo(self.view).offset(237 *HRCommonScreenW);
-        make.top.equalTo(self.view).offset(HRCommonScreenH *488);
-        make.height.mas_equalTo(45 );
-        make.width.mas_equalTo(45 );
-    }];
-    //温度按钮
-    [self.tempButton mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.left.equalTo(self.view).offset(62 *HRCommonScreenW);
-        make.top.equalTo(self.view).offset(HRCommonScreenH *539 +3 );
-        make.height.mas_equalTo(49 *HRCommonScreenH);
-        make.width.mas_equalTo(76 *HRCommonScreenW);
-    }];
-    //湿度按钮
-    [self.humidityButton mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.left.equalTo(self.view).offset(150 *HRCommonScreenW);
-        make.top.equalTo(self.view).offset(HRCommonScreenH *539+3);
-        make.height.mas_equalTo(49 *HRCommonScreenH);
-        make.width.mas_equalTo(76 *HRCommonScreenW);
-    }];
-    //闹钟按钮
-    [self.clockButton mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.left.equalTo(self.view).offset(237 *HRCommonScreenW);
-        make.top.equalTo(self.view).offset(HRCommonScreenH *539+3);
-        make.height.mas_equalTo(49 *HRCommonScreenH);
-        make.width.mas_equalTo(76 *HRCommonScreenW);
     }];
     
     //my Date按钮
@@ -1185,10 +1335,10 @@
       if (button.tag == 10) {
         
         //斌 左蓝牙模式
-
+          
         //left
           
-           [kUserDefault setValue:@"left" forKey:kDefaultsUserModel];
+           [kUserDefault setValue:@"Left" forKey:kDefaultsUserModel];
 
           
           
@@ -1233,14 +1383,6 @@
               
               
               _baby.scanForPeripherals().begin().stop(60);
-              
-              
-              
-              
-              
-              
-              
-              
           }
           
 
@@ -1305,21 +1447,13 @@
               //断开连接蓝牙
               [_baby cancelAllPeripheralsConnection];
               
-           //   [_baby cancelPeripheralConnection:self.connectedPeripheral];
+         
 
               
               //设置委托后直接可以使用，无需等待CBCentralManagerStatePoweredOn状态。
               //扫描十秒后停止
               
-              
-              
               _baby.scanForPeripherals().begin().stop(60);
-              
-              
-              
-              
-              
-              
               
               
           }
@@ -1346,7 +1480,7 @@
             
             // command 0xa2 温度增加   model 0x01 暖风模式
             
-            [self sendDataToBlueToothWithcommand:0xa2 temper:0x00 model:0x01 hour:0x00 miniute:0x00];
+            [self sendDataToBlueToothWithcommand:0xa2 temper:0x00 model:0x01 hour:0x00 miniute:0x00 temperFavor:0x00];
             
         }
         
@@ -1357,10 +1491,10 @@
             
             UIAlertView *alert = [[UIAlertView alloc]
                                   initWithTitle:nil
-                                  message:@"是否重新设定睡眠温度?"
+                                  message:@"Reset Temperature?"
                                   delegate:self
-                                  cancelButtonTitle:@"取消"
-                                  otherButtonTitles:@"确定", nil];
+                                  cancelButtonTitle:@"Cancel"
+                                  otherButtonTitles:@"Confirm", nil];
             
             [alert show];
 
@@ -1391,7 +1525,7 @@
             
             
             
-            [self sendDataToBlueToothWithcommand:0xa2 temper:0x00 model:0x01 hour:0x00 miniute:0x00];
+            [self sendDataToBlueToothWithcommand:0xa2 temper:0x00 model:0x01 hour:0x00 miniute:0x00 temperFavor:0x00];
             
             
             
@@ -1406,10 +1540,10 @@
             
             UIAlertView *alert = [[UIAlertView alloc]
                                   initWithTitle:nil
-                                  message:@"是否重新设定睡眠温度?"
+                                  message:@"Reset Temperature?"
                                   delegate:self
-                                  cancelButtonTitle:@"取消"
-                                  otherButtonTitles:@"确定", nil];
+                                  cancelButtonTitle:@"Cancel"
+                                  otherButtonTitles:@"Confirm", nil];
             
             [alert show];
             
@@ -1437,7 +1571,7 @@
             
             
             
-            [self sendDataToBlueToothWithcommand:0xa5 temper:0x00 model:0x01 hour:0x00 miniute:0x00];
+            [self sendDataToBlueToothWithcommand:0xa5 temper:0x00 model:0x01 hour:0x00 miniute:0x00 temperFavor:0x00];
             
             
             
@@ -1452,7 +1586,7 @@
             // command 0xa5 风速减少  model 0x03 自动模式
             
             
-            [self sendDataToBlueToothWithcommand:0xa5 temper:0x00 model:0x02 hour:0x00 miniute:0x00];
+            [self sendDataToBlueToothWithcommand:0xa5 temper:0x00 model:0x02 hour:0x00 miniute:0x00 temperFavor:0x00];
             
         }
 
@@ -1473,7 +1607,7 @@
             
             
             
-            [self sendDataToBlueToothWithcommand:0xa4 temper:0x00 model:0x01 hour:0x00 miniute:0x00];
+            [self sendDataToBlueToothWithcommand:0xa4 temper:0x00 model:0x01 hour:0x00 miniute:0x00 temperFavor:0x00];
             
             
             
@@ -1488,7 +1622,7 @@
             // command 0xa4 风速增加  model 0x02 冷风模式
             
             
-            [self sendDataToBlueToothWithcommand:0xa4 temper:0x00 model:0x02 hour:0x00 miniute:0x00];
+            [self sendDataToBlueToothWithcommand:0xa4 temper:0x00 model:0x02 hour:0x00 miniute:0x00 temperFavor:0x00];
             
         }
         
@@ -1513,7 +1647,7 @@
                 //没设置过
                 
                 // command 0xa6 功能选择  model 0x01 暖风模式 暖风默认定时7小时
-                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x01 hour:0x07 miniute:0x00];
+                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x01 hour:0x09 miniute:0x00 temperFavor:0x00];
                 
             }
             
@@ -1521,7 +1655,7 @@
                 //设置过定时 按照定时来
                 
                 // command 0xa6 功能选择  model 0x01 暖风模式 暖风默认定时7小时
-                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x01 hour:[self.setedHour intValue] miniute:[self.setedMinute intValue]];
+                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x01 hour:[self.setedHour intValue] miniute:[self.setedMinute intValue] temperFavor:0x00];
             }
 
             
@@ -1538,7 +1672,7 @@
             
             button.selected = NO;
             
-            [self sendDataToBlueToothWithcommand:0xa7 temper:0x22 model:0x01 hour:0x10 miniute:0x33];
+            [self sendDataToBlueToothWithcommand:0xa7 temper:0x22 model:0x01 hour:0x09 miniute:0x33 temperFavor:0x00];
             
             
         }
@@ -1565,7 +1699,7 @@
                 //没设置过
                 
                 // command 0xa6 功能选择  model 0x02 冷风模式 冷风默认定时8小时
-                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x02 hour:0x08 miniute:0x00];
+                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x02 hour:0x09 miniute:0x00 temperFavor:0x00];
                 
             }
             
@@ -1573,7 +1707,7 @@
                 //设置过定时 按照定时来
                 
                 // command 0xa6 功能选择  model 0x02 冷风模式 按照定时来
-                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x02 hour:[self.setedHour intValue] miniute:[self.setedMinute intValue]];
+                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x02 hour:[self.setedHour intValue] miniute:[self.setedMinute intValue] temperFavor:0x00];
             }
             
 
@@ -1591,7 +1725,7 @@
 
             button.selected = NO;
             
-            [self sendDataToBlueToothWithcommand:0xa7 temper:0x22 model:0x02 hour:0x10 miniute:0x33];
+            [self sendDataToBlueToothWithcommand:0xa7 temper:0x22 model:0x02 hour:0x09 miniute:0x33 temperFavor:0x00];
             
 
         }
@@ -1616,7 +1750,7 @@
                 //没设置过
                 
                // command 0xa6 功能选择  model 0x03 自动模式 自动默认定时12小时
-                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x03 hour:12 miniute:0x00];
+                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x03 hour:12 miniute:0x00 temperFavor:0x00];
                 
             }
             
@@ -1624,7 +1758,7 @@
                 //设置过定时 按照定时来
                 
                 // command 0xa6 功能选择  model 0x03 自动模式 根据系统设置的自动时分上传
-                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x03 hour:[self.setedHour intValue] miniute:[self.setedMinute intValue]];
+                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x03 hour:[self.setedHour intValue] miniute:[self.setedMinute intValue]temperFavor:0x00] ;
             }
             
 
@@ -1642,7 +1776,7 @@
             
             button.selected = NO;
             
-            [self sendDataToBlueToothWithcommand:0xa7 temper:0x22 model:0x03 hour:0x10 miniute:0x33];
+            [self sendDataToBlueToothWithcommand:0xa7 temper:0x22 model:0x03 hour:0x10 miniute:0x33 temperFavor:0x00];
             
             
         }
@@ -1751,18 +1885,11 @@
 
             //    NSString * model = [kUserDefault objectForKey:SelectedModel];
                 
-                [self sendDataToBlueToothWithcommand:0xa8 temper:0x00 model:0x00 hour:[self.setedHour intValue] miniute:[self.setedMinute intValue]];
-                
-                
-                
+                [self sendDataToBlueToothWithcommand:0xa8 temper:0x00 model:0x00 hour:[self.setedHour intValue] miniute:[self.setedMinute intValue] temperFavor:0x00];
             }
           
             
         }];
-        
-
-        
-        
         
         [self loadCurrentDate];
         
@@ -1825,10 +1952,10 @@
         
         UIAlertView *alert = [[UIAlertView alloc]
                               initWithTitle:nil
-                              message:@"是否重新设定睡眠温度?"
+                              message:@"Reset Temperature?"
                               delegate:self
-                              cancelButtonTitle:@"取消"
-                              otherButtonTitles:@"确定", nil];
+                              cancelButtonTitle:@"Cancel"
+                              otherButtonTitles:@"Confirm", nil];
         
         [alert show];
         
@@ -2125,7 +2252,7 @@
     
    // 72 == 48
     
-      [self sendDataToBlueToothWithcommand:0xa9 temper:btn.tag model:0x03 hour:0x00 miniute:0x00];
+      [self sendDataToBlueToothWithcommand:0xa9 temper:btn.tag model:0x03 hour:0x00 miniute:0x00 temperFavor:0x00];
     
     [self performSelector:@selector(tapPopViewClick:)];
     

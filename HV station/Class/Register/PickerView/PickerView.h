@@ -40,12 +40,18 @@ typedef void(^DidSelectBlock)(NSObject * data,BOOL isSureBtn);
 
 @property(nonatomic, assign) PickerViewType pickerType;
 
+
+//内容的高度
 @property(nonatomic, assign) CGFloat contentHeight;
 
 //////////////////////////////////////////////////////////////////////////////////////////
 //      PickerViewTypeDate -- 对应的属性 与 方法
 //////////////////////////////////////////////////////////////////////////////////////////
+
+//最小的日期
 @property (nonatomic, strong) NSDate *minimumDate;
+
+//最大的日期
 
 @property (nonatomic, strong) NSDate *maximumDate;
 
@@ -57,11 +63,16 @@ typedef void(^DidSelectBlock)(NSObject * data,BOOL isSureBtn);
 /////////////////////////////////////////////////////////////////////////////////////
 
 
-
+//在window层面上弹出来
 + (PickerView *)showPickerViewInkeyWindowTopWithType:(PickerViewType)type;
+
+//在控制器上弹出来
 + (PickerView *)showPickerViewInVCTop:(UIViewController *)VC withType:(PickerViewType)type;
+//在某个view上面弹出来
 + (PickerView *)showPickerViewInView:(UIView *)view withType:(PickerViewType)type;
 
+
+//设置代码块 
 - (void)setSelectBlock:(DidSelectBlock)selectBlock;
 
 

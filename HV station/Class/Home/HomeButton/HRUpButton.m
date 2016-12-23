@@ -30,6 +30,9 @@
 - (void)layoutSubviews
 {
     [super layoutSubviews];
+    
+    
+    
 //    CGRect rect = self.imageView.frame;
 //    rect.origin.y = CGRectGetMaxY(self.frame) - 20 * HRCommonScreenH;
 //    self.imageView.frame = rect;
@@ -46,7 +49,7 @@
 //        make.width.mas_equalTo(20*HRCommonScreenW);
 //    }];
 //    [self.titleLabel mas_makeConstraints:^(MASConstraintMaker *make) {
-////        make.centerX.equalTo(self.imageView.mas_centerX);
+//        make.centerX.equalTo(self.imageView.mas_centerX);
 //        make.left.equalTo(self).offset(20);
 //        make.top.equalTo(self).offset(22*HRCommonScreenH);
 //        make.height.mas_equalTo(30*HRCommonScreenH);
@@ -60,9 +63,16 @@
 //    self.imageView.hr_y =  63 * HRCommonScreenH - 15 -9 ;
 //    self.titleLabel.hr_centerX = self.imageView.hr_centerX;
 //    self.titleLabel.hr_y -= 0.5;
+    
+    
+    
+    
+    
     self.imageView.hr_centerX = 63 *0.5;
     self.imageView.hr_y = CGRectGetMaxY(self.titleLabel.frame)- 2;
     self.titleLabel.hr_centerX = self.imageView.hr_centerX;
+    
+    
 //    self.imageView.hr_y = 63 - 9 - 10 -1;
     
 //    CGRect titleRect = self.titleLabel.frame;

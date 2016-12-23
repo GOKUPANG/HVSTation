@@ -47,24 +47,44 @@ static NSInteger row = 2;
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
-   // self.view.backgroundColor =[UIColor colorWithRed:231.0/255.0 green:231.0/255.0 blue:231.0/255.0 alpha:1];
-   // self.title = @"设置";
+    
+    //获取用户的温感
+    
+    NSString * userTemper = [kUserDefault objectForKey:kDefaultsUserTemper];
     
     
-    row = arc4random()%4;
+    if ([userTemper hasPrefix:@"c"]) {
+        NSLog(@"cool");
+        
+        
+        row = arc4random()%3;
+        
+    }
+
+    
+    else if ([userTemper hasPrefix:@"w"])
+    {
+        NSLog(@"warm");
+        
+        row = arc4random()%3 + 2;
+        
+    }
+    
+    
+    
+    
+    
     [self SetUPUI];
-    
-  
-    
     
     NSString * temperDefalut = [kUserDefault objectForKey:defaultTemper];
     
     
-   // NSLog(@"本地化有了%@",temperDefalut);
+    
+    //保存的温度
     
     NSInteger rrr = [temperDefalut integerValue];
     
-   rrr = rrr-68;
+    
     
     
     
@@ -77,13 +97,43 @@ static NSInteger row = 2;
     
     else{
         
+        switch (rrr) {
+            case 77:
+                
+                row=0;
+                
+                break;
+                
+                case 82:
+                
+                
+                row =1 ;
+                
+                break;
+                
+                case 86:
+                
+                row =2 ;
+                
+                break;
+                
+                case 91:
+                
+                row =3 ;
+                
+                break;
+                
+                case 97:
+                
+                row =4 ;
+                
+                break;
+                
+            default:
+                break;
+        }
         
-        
-        row =rrr;
-        
-        
-        
-        [self.tableView selectRowAtIndexPath:[NSIndexPath indexPathForRow:rrr inSection:0] animated:YES scrollPosition:UITableViewScrollPositionMiddle];
+        [self.tableView selectRowAtIndexPath:[NSIndexPath indexPathForRow:row inSection:0] animated:YES scrollPosition:UITableViewScrollPositionMiddle];
         
 
     }
@@ -202,9 +252,17 @@ static NSInteger row = 2;
     UILabel * SleepLabel = [[UILabel alloc]init];
     UILabel * BigLabel = [[UILabel alloc]init];
     
+    
+    
     [self.view addSubview:TemLabel];
     [self.view addSubview:SleepLabel];
     [self.view addSubview:BigLabel];
+    
+    
+    //大字的tag
+    
+    BigLabel.tag = 1111;
+    
     
     
     
@@ -268,12 +326,59 @@ static NSInteger row = 2;
     
     
     if (temper.length == 0||!temper) {
-        BigLabel.text = [NSString stringWithFormat:@"%ld℉",row+68];
-
+        
+       
+        
+        NSString * defaltTem ;
+        
+        switch (row) {
+            case 0:
+                
+                
+                defaltTem = @"77";
+                
+                
+                break;
+                
+                
+            case 1:
+                defaltTem =  @"82";
+                
+                break;
+                
+                
+            case 2:
+                defaltTem =  @"86";
+                break;
+                
+            case 3:
+                
+                defaltTem =  @"91";
+                break;
+                
+            case 4:
+                
+                defaltTem =  @"97";
+                break;
+                
+                
+            default:
+                break;
+        }
+        
+        
+        BigLabel.text = [NSString stringWithFormat:@"%@℉",defaltTem];
+        
     }
     
+    
+    
     else{
+        
+        
     BigLabel.text = [NSString stringWithFormat:@"%@℉",temper];
+        
+        
     }
     
     
@@ -393,7 +498,44 @@ static NSInteger row = 2;
         
     }
     
-    cell.textLabel.text = [NSString stringWithFormat:@"%ld℉",indexPath.row+68];
+    
+    
+    switch (indexPath.row) {
+        case 0:
+            
+            
+            cell.textLabel.text = @"77";
+            
+            
+            break;
+            
+            
+           case 1:
+             cell.textLabel.text = @"82";
+            
+            break;
+            
+            
+            case 2:
+             cell.textLabel.text = @"86";
+            break;
+            
+            case 3:
+            
+             cell.textLabel.text = @"91";
+            break;
+            
+            case 4:
+            
+             cell.textLabel.text = @"97";
+            break;
+            
+            
+        default:
+            break;
+    }
+    
+   // cell.textLabel.text = [NSString stringWithFormat:@"%ld℉",indexPath.row+68];
     
     cell.textLabel.font = [UIFont fontWithName:@"PingFangSC-Thin" size:16];
     
@@ -417,9 +559,52 @@ static NSInteger row = 2;
 {
     row = indexPath.row;
     
-    NSString * defaltTem = [NSString stringWithFormat:@"%ld",row+68];
+  //  NSString * defaltTem = [NSString stringWithFormat:@"%ld",row+68];
+    NSString * defaltTem ;
     
-    NSLog(@"一开始就来到了这里");
+    switch (indexPath.row) {
+        case 0:
+            
+            
+            defaltTem = @"77";
+            
+            
+            break;
+            
+            
+        case 1:
+           defaltTem =  @"82";
+            
+            break;
+            
+            
+        case 2:
+            defaltTem =  @"86";
+            break;
+            
+        case 3:
+            
+            defaltTem =  @"91";
+            break;
+            
+        case 4:
+            
+            defaltTem =  @"97";
+            break;
+            
+            
+        default:
+            break;
+    }
+    
+    
+    UILabel * bigLabel = [self.view viewWithTag:1111];
+    
+    bigLabel.text = [NSString stringWithFormat:@"%@℉",defaltTem];
+    
+    
+    
+    
     
     [kUserDefault setValue:defaltTem forKey:defaultTemper];
     

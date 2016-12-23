@@ -17,7 +17,10 @@
     
 }
 
+//还是要用到pickerView
+
 @property(nonatomic, strong) UIPickerView * pickerView;
+
 @property(nonatomic, strong) UIDatePicker * datePicker;
 
 @property(nonatomic, strong) NSMutableArray * selectArr;
@@ -58,6 +61,8 @@
 
 
 + (PickerView *)showPickerViewInView:(UIView *)view withType:(PickerViewType)type{
+    
+    
     PickerView * picker = [[PickerView alloc] initWithFrame:CGRectMake(0, 0, screenWidth, screenHeight)];
     picker.pickerType = type;
     
@@ -67,16 +72,25 @@
     return picker;
 }
 
+
+
+
+//
 - (instancetype)initWithFrame:(CGRect)frame
 {
+    
     if (self = [super initWithFrame:frame]) {
         self.frame = CGRectMake(0, 0, screenWidth, screenHeight);
         self.selectArr = [NSMutableArray array];
         self.contentHeight = 230;
         
         UITapGestureRecognizer * tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(removeFromSuperview)];
+        
         tap.numberOfTapsRequired = 2;
+        
         [self addGestureRecognizer:tap];
+        
+        
     }
     return self;
 }
@@ -84,12 +98,19 @@
 
 
 
+//懒加载 pickView
+
 - (UIPickerView *)pickerView{
+    
+    
+ //如果datePicker 是 存在的 那就把它 从父视图上移除  这里到底是为什么  不懂...
     
     if (_datePicker) {
         [_datePicker removeFromSuperview];
     }
     
+    
+    //如果pickerView 不存在  就创建一个pickerView
     if (!_pickerView) {
         
         _pickerView = [[UIPickerView alloc] initWithFrame:CGRectMake(0, screenHeight - self.contentHeight, screenWidth, self.contentHeight)];
@@ -103,7 +124,7 @@
 
 
 
-
+//懒加载 datePicker
 - (UIDatePicker *)datePicker{
     
     if (_pickerView) {
@@ -120,6 +141,8 @@
 }
 
 
+
+//set方法
 - (void)setPickerType:(PickerViewType)pickerType{
     
     _pickerType = pickerType;
@@ -161,6 +184,8 @@
 }
 
 
+
+// set方法
 - (void)setDataSources:(NSArray *)dataSources{
     
     _dataSources = dataSources;
@@ -175,11 +200,16 @@
 }
 
 
-
+//多少列
 - (NSInteger)numberOfComponentsInPickerView:(UIPickerView *)pickerView{
 
     if (self.dataSources) {
+        
+        
         return self.dataSources.count;
+        
+        
+        
     }else{
         return 0;
     }
@@ -187,6 +217,8 @@
 }
 
 
+
+//多少行 
 - (NSInteger)pickerView:(UIPickerView *)pickerView numberOfRowsInComponent:(NSInteger)component{
     
     if (self.dataSources[component]) {
@@ -197,6 +229,10 @@
     }
 }
 
+
+
+// pickerView的component  内容 每行的string
+
 - (NSString *)pickerView:(UIPickerView *)pickerView titleForRow:(NSInteger)row forComponent:(NSInteger)component{
     
     NSArray * arr = self.dataSources[component];
@@ -204,6 +240,8 @@
     return [arr objectAtIndex:row];
 }
 
+
+// pickerView 选中某一行的时候 实现的方法
 - (void)pickerView:(UIPickerView *)pickerView didSelectRow:(NSInteger)row inComponent:(NSInteger)component{
     
     NSArray * arr = self.dataSources[component];
@@ -217,42 +255,60 @@
 }
 
 
-
+//把sure 和 cancel 的 View加进去灰色选择项
 
 - (void)addSureAndCancelButton{
     
+    
+    //弹出来的picker 是 230 高  这个选择 sure 或者  no 的是 40高
+    
     UIView * buttonView = [[UIView alloc] initWithFrame:CGRectMake(0, screenHeight - self.contentHeight - 40, screenWidth, 40)];
     buttonView.backgroundColor = [UIColor grayColor];
+    
     [self addSubview:buttonView];
     
+    
+    
+    // 长 100  高 40 的取消按钮
     UIButton * cancel = [[UIButton alloc] initWithFrame:CGRectMake(0, 0, 100, 40)];
-   // [cancel setTitle:@"取消" forState:UIControlStateNormal];
 
+    
     [cancel setTitle:@"Cancel" forState:UIControlStateNormal];
     [cancel addTarget:self action:@selector(buttonAction:) forControlEvents:UIControlEventTouchUpInside];
+    
     [buttonView addSubview:cancel];
     
     
+    // 长 100 高 40 的确定按钮
     UIButton * sure = [[UIButton alloc] initWithFrame:CGRectMake(screenWidth - 100, 0, 100, 40)];
     [sure setTitle:@"Confirm" forState:UIControlStateNormal];
    // [sure setTitle:@"确定" forState:UIControlStateNormal];
 
     [sure addTarget:self action:@selector(buttonAction:) forControlEvents:UIControlEventTouchUpInside];
+    
     [buttonView addSubview:sure];
+    
     sure.tag = 101;
     
     
 }
 
+//点击sure 和 cancel 按钮的时候 进入这个方法
+
 - (void)buttonAction:(UIButton  *)button{
     
     [self removeFromSuperview];
     
+    //tag等于 101 相当于   btn 是  sure btn
+    //如果 selectBlock存在  而且点击的按钮是 sure 按钮
     if (self.selectBlock && button.tag == 101) {
         
+        // 如果picker的类型是 data  就用 自己输入的数组 来做
         if (self.pickerType == PickerViewTypeData) {
             self.selectBlock(self.selectArr,YES);
         }else{
+            
+            //如果是 date  就用  picker 的那几种日期的 来做
             self.selectBlock(self.datePicker.date,YES);
         }
     }
@@ -272,7 +328,11 @@
 - (void)showInView:(UIView *)view{
     
     [view addSubview:self];
+    
+    //先把他放在 屏幕底部 高度为0
     self.frame = CGRectMake(0, screenHeight, screenWidth, 0);
+    
+    //然后用UIView 的方法来 让他升起来
     [UIView animateWithDuration:0.8 animations:^{
         
         self.frame = CGRectMake(0, 0, screenWidth, screenHeight);
@@ -280,8 +340,12 @@
 }
 
 
+
+//从父视图 上 移除
 - (void)removeFromSuperview{
     
+    
+    // 先用UIView动画 移到 下面去 再从父视图上删除
     [UIView animateWithDuration:0.8 animations:^{
         
         self.frame = CGRectMake(0, screenHeight, screenWidth, screenHeight);
@@ -294,15 +358,11 @@
     
 }
 
-
-
-
-
-
-
 //////////////////////////////////////////////////////////////////////////////////////////
 //      PickerViewTypeDate -- 对应的属性 与 方法
 //////////////////////////////////////////////////////////////////////////////////////////
+
+
 - (void)setMinimumDate:(NSDate *)minimumDate{
     
     [self.datePicker setMinimumDate:minimumDate];

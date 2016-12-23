@@ -21,19 +21,16 @@
 @interface RegisterController ()
 
 /** 背景图片 */
-@property(nonatomic, weak) UIImageView *backgroundImageView;
-
-
+@property(nonatomic, weak) UIImageView * backgroundImageView;
 /** 导航条 */
-@property(nonatomic, weak) UIView *navBar;
+@property(nonatomic, weak) UIView * navBar;
 /** logo图片 */
 @property(nonatomic, weak) UIImageView * logoImageView;
 /** 用户名label */
 @property(nonatomic, weak) UILabel * nameLabel;
 /** 导航条下的自定义线 */
 @property(nonatomic, weak) UIView * lineView;
-
-/*名字输入框*/
+/** 名字输入框 */
 @property(nonatomic,strong)UITextField * nameTF;
 
 
@@ -483,7 +480,7 @@
     ageBtn.layer.borderColor = [HRTextColor CGColor];
     
     
-  NSString * ageStr =   [kUserDefault objectForKey:@"age"];
+     NSString * ageStr =   [kUserDefault objectForKey:@"age"];
     
     [ageBtn setTitle:ageStr forState:UIControlStateNormal];
     
