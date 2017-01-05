@@ -680,17 +680,10 @@
     
     [nextBtn addTarget:self action:@selector(nextBtn) forControlEvents:UIControlEventTouchUpInside];
     
-    
-
 }
-
-
-
 #pragma mark - 年龄按钮下拉方法
 -(void)ageBtn:(UIButton *)btn
 {
-    
-    
     UITextField * nameTF = [self.view viewWithTag:110];
     
     [nameTF resignFirstResponder];
@@ -707,15 +700,8 @@
             NSString * subStr = [btntitle substringToIndex:10];
             
             [btn setTitle:subStr forState:UIControlStateNormal];
-            
-          //  NSLog(@"截取的字符串%@",subStr);
-            
         }
-        
     }];
-    
-
-    
 }
 
 
@@ -727,7 +713,7 @@
     
     NSMutableArray * mtbArray  = [NSMutableArray array];
     
-    for (int i =  0; i<300; i++) {
+    for (int i =  50; i<240; i++) {
         
         NSString * str = [NSString stringWithFormat:@"%dcm",i];
         
@@ -769,7 +755,7 @@
     
     NSMutableArray * mtbArray  = [NSMutableArray array];
     
-    for (int i =  0; i<200; i++) {
+    for (int i =  20; i<200; i++) {
         
         NSString * str = [NSString stringWithFormat:@"%dkg",i];
         
@@ -792,20 +778,10 @@
             NSString *strUrl2 = [strUrl1 stringByReplacingOccurrencesOfString:@")" withString:@""];
             NSString *strUrl3 = [strUrl2 stringByReplacingOccurrencesOfString:@"\n" withString:@""];
             
-            
-            
             [btn setTitle:strUrl3 forState:UIControlStateNormal];
         }
-        
-        
-        
     }];
-
-
 }
-
-
-
 #pragma mark - 下一步按钮实现方法
 
 -(void)nextBtn
@@ -826,11 +802,8 @@
     UIButton * rightBtn  = [self.view viewWithTag:102];
     UIButton * manBtn    = [self.view viewWithTag:103];
     UIButton * womenBtn  = [self.view viewWithTag:104];
-    
-    //UIButton * manBtn = [self.view viewWithTag:103];
     UIButton * coldBtn   = [self.view viewWithTag:105];
     UIButton * warmBtn   = [self.view viewWithTag:106];
-    
     UIButton * ageBtn    = [self.view viewWithTag:107];
     UIButton * heightBtn = [self.view viewWithTag:108];
     UIButton * weightBtn = [self.view viewWithTag:109];
@@ -845,8 +818,6 @@
     
     else  if (womenBtn.isSelected)
     {
-        
-        
         [[NSUserDefaults standardUserDefaults] setValue:@"women"forKey:kDefaultsUserSex];
         
     }
@@ -888,16 +859,8 @@
     
     if (nameTF.text == nil || nameTF.text.length == 0|| ageBtn.titleLabel.text.length==0 || heightBtn.titleLabel.text.length == 0||weightBtn.titleLabel.text.length == 0)
     {
-        NSLog(@"空一");
-        
-        
-        
-        [SVProgressHUD showErrorWithStatus:@"信息不完整"];
-        
-        
+        [SVProgressHUD showErrorWithStatus:@"Incomplete information"];
         return;
-        
-        
     }
     
     //使用模式
@@ -909,8 +872,8 @@
     
     
     if (!useModel||!sex ||!temper) {
-        NSLog(@"空二");
-        [SVProgressHUD showErrorWithStatus:@"信息不完整"];
+      
+        [SVProgressHUD showErrorWithStatus:@"incomplete information"];
 
         return;
         
@@ -949,9 +912,6 @@
     
    
    */
-    
-    
-    
     [self.navigationController pushViewController:setVC animated:YES];
     
 
@@ -1010,7 +970,6 @@
     
     
     UIButton * womenBtn = [self.view viewWithTag:104];
-    
     
     if ( !btn.selected) {
         btn.selected = YES;
@@ -1095,6 +1054,13 @@
 }
 
 
+
+//点击背景的时候关闭编辑状态 
+-(void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
+{
+    [self.view endEditing:YES];
+    
+}
 
 
 

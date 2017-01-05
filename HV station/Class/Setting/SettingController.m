@@ -70,23 +70,13 @@ static NSInteger row = 2;
         
     }
     
-    
-    
-    
-    
     [self SetUPUI];
     
     NSString * temperDefalut = [kUserDefault objectForKey:defaultTemper];
-    
-    
-    
+
     //保存的温度
     
     NSInteger rrr = [temperDefalut integerValue];
-    
-    
-    
-    
     
     if (!temperDefalut||temperDefalut.length == 0) {
         
@@ -135,11 +125,7 @@ static NSInteger row = 2;
         
         [self.tableView selectRowAtIndexPath:[NSIndexPath indexPathForRow:row inSection:0] animated:YES scrollPosition:UITableViewScrollPositionMiddle];
         
-
     }
-        
-    
-
 }
 
 
@@ -264,17 +250,14 @@ static NSInteger row = 2;
     BigLabel.tag = 1111;
     
     
-    
-    
     TemLabel.sd_layout
     .topSpaceToView(self.view,20+ HRCommonScreenH *55 + 22)
-    
     .leftSpaceToView(self.view,21)
     .rightSpaceToView(self.view,HRCommonScreenW * 70 )
     .heightIs(50 * HRCommonScreenH);
     
    // TemLabel.text = @"根据你的身体条件，推荐你睡眠温度\n如不同意，可以修改";
-    TemLabel.text = @"Reserve Sleep Temp\nCan Be Change By User";
+    TemLabel.text = @"Reserve Sleep Temp\nCan Be Changed By User";
 
     TemLabel.font = [UIFont fontWithName:@"PingFangSC-Thin" size:16];
     
@@ -559,7 +542,6 @@ static NSInteger row = 2;
 {
     row = indexPath.row;
     
-  //  NSString * defaltTem = [NSString stringWithFormat:@"%ld",row+68];
     NSString * defaltTem ;
     
     switch (indexPath.row) {
@@ -570,7 +552,6 @@ static NSInteger row = 2;
             
             
             break;
-            
             
         case 1:
            defaltTem =  @"82";
@@ -602,12 +583,7 @@ static NSInteger row = 2;
     
     bigLabel.text = [NSString stringWithFormat:@"%@℉",defaltTem];
     
-    
-    
-    
-    
     [kUserDefault setValue:defaltTem forKey:defaultTemper];
-    
     
     [self.tableView selectRowAtIndexPath:[NSIndexPath indexPathForRow:row inSection:0] animated:YES scrollPosition:UITableViewScrollPositionMiddle];
     
@@ -621,14 +597,5 @@ static NSInteger row = 2;
     // Dispose of any resources that can be recreated.
 }
 
-/*
-#pragma mark - Navigation
-
-// In a storyboard-based application, you will often want to do a little preparation before navigation
-- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
-    // Get the new view controller using [segue destinationViewController].
-    // Pass the selected object to the new view controller.
-}
-*/
 
 @end

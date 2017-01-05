@@ -102,6 +102,26 @@
 @property (nonatomic, strong)NSTimer * timer ;
 
 
+
+//上下左右四个提示的label
+
+@property (nonatomic, strong) UILabel * UPLabel ;
+
+
+@property (nonatomic, strong) UILabel * DownLabel ;
+
+@property (nonatomic, strong) UILabel * LeftLabel ;
+
+
+@property (nonatomic, strong) UILabel * RightLabel ;
+
+/** 声音按钮 */
+@property(nonatomic, strong) UIButton * soundBtn ;
+
+/** 显示按钮 */
+@property(nonatomic, strong) UIButton * displayBtn;
+
+
 @end
 
 @implementation HomeController
@@ -158,7 +178,7 @@
 
 #pragma mark -重点 发送数据给蓝牙
 
-//增加了 温感喜好
+//增加了 温感喜好  12月 26日  增加温度档位 字节
 
 
 -(void)sendDataToBlueToothWithcommand:(Byte )command
@@ -167,14 +187,18 @@
                                  hour:(Byte )hour
                               miniute:(Byte )minute
                           temperFavor:(Byte )temperFavor
+                                 gear:(Byte )gear
+                         soundDisplay:(Byte )soundDisplay
+
+
 
 
 {
-    Byte byte[15] ;
+    Byte byte[17] ;
     byte[0] = 0xaa;
     //帧长度为2
     byte[1] = 0x00;
-    byte[2] = 0x0a;
+    byte[2] = 0x0c;
     //0x02表示APP发起
     byte[3] = 0x02;
     //控制码
@@ -191,6 +215,13 @@
      定时(2):
      小时(1)
      分钟(1)
+     自动挡温度喜好值（1）：77、82、86、91、97其中之一；
+     温度档位（1）：值为0、1或2
+     声音、显示状态（1）：
+     0显示关声音关，
+     1显示关声音开，
+     2显示开声音关，
+     3显示开声音开。
      */
     byte[6]  = model;
     byte[7]  = 0x01;
@@ -199,28 +230,29 @@
     byte[9]  = 0x01;
     byte[10] = hour;
     byte[11] = minute;
-    
-    
-    
     //自动档温度喜好值 默认0x00
     byte[12] = temperFavor;
+    //温度档位
+    byte[13] = gear ;
+    //声音显示状态
+    byte[14] = soundDisplay ;
     
     //校验码
     Byte checkMark = 0;
 
-    for (int i = 3; i<=12; i++) {
+    for (int i = 3; i<=14; i++) {
         checkMark = checkMark + byte[i];
         
     }
     
-    byte[13] = checkMark;
+    byte[15] = checkMark;
     
     //帧结束符
-    byte[14] =0x55;
+    byte[16] =0x55;
     
     
     
-    NSData * myData = [NSData dataWithBytes:byte length:15];
+    NSData * myData = [NSData dataWithBytes:byte length:17];
     
     NSLog(@"%@",myData);
     
@@ -232,6 +264,8 @@
     
     else{
         NSLog(@"外设没有连接或者写入特征不存在");
+        
+
         
     }
 
@@ -268,45 +302,81 @@
         
         
         if (central.state == CBManagerStatePoweredOn) {
-            [SVProgressHUD showInfoWithStatus:@"设备打开成功，开始扫描设备" ];
-            
+            [SVProgressHUD showInfoWithStatus:@"Device open successfully,Start scanning device " ];
         }
     
         else if(central.state == CBManagerStatePoweredOff ){
             
-           // [SVProgressHUD showInfoWithStatus:@"尚未打开蓝牙" ];
+            [SVProgressHUD showInfoWithStatus:@"You need to turn on  bluetooth"];
 
             NSLog(@"蓝牙还没打开");
             
         }
         
-        
     } ];
+    
+    
+    //12月26日 增加扫描过滤
+    
+    [_baby setFilterOnDiscoverPeripherals:^BOOL(NSString *peripheralName, NSDictionary *advertisementData, NSNumber *RSSI) {
+        
+       
+        
+        //获取蓝牙模式
+        NSString * usermodel = [kUserDefault objectForKey:kDefaultsUserModel];
+        
+        if ([usermodel isEqualToString:@"left"]) {
+            
+            if ([peripheralName hasSuffix:@"LEFT "] )
+                
+            {
+                return YES;
+                
+            }
+            
+            
+
+
+        }
+       
+        
+        else if ([ usermodel isEqualToString:@"right"])
+        {
+            
+            
+            NSLog(@"发现右蓝牙");
+            
+            
+            if ([peripheralName hasSuffix:@"RIGHT"] )
+                
+            {
+                
+                NSLog(@"发现右蓝牙1");
+
+                return YES;
+                
+            }
+
+            
+        }
+        
+        return NO;
+        
+        
+    }];
     
     
     //设置扫描到设备/外设的委托
     //要实现了  _baby.scanForPeripherals().begin(); 这个方法才会进入这个回调
   [_baby setBlockOnDiscoverToPeripherals:^(CBCentralManager *central, CBPeripheral *peripheral, NSDictionary *advertisementData, NSNumber *RSSI) {
       
-     // NSLog(@"发现了外设的名字%@ 外设的uuid%@",peripheral.name,peripheral.identifier.UUIDString);
-      
- 
-      
-      
+     
       if (peripheral.state == CBPeripheralStateConnected) {
           
           
           NSLog(@"已经连接上的蓝牙%@",peripheral.name);
           
       }
-      
-      
-      NSLog(@"外设的名字%@",peripheral.name);
-      
-      
-      //if ([peripheral.name hasPrefix:@"H"]) {
-      
-      
       
       //获取蓝牙模式
       NSString * usermodel = [kUserDefault objectForKey:kDefaultsUserModel];
@@ -324,7 +394,9 @@
           
           
       
-          if ([peripheral.name isEqualToString:@"HV LEFT "]) {
+          
+          if ([peripheral.name hasSuffix:@"LEFT "]) {
+
           
           NSLog(@"发现并且开始连接 HV LEFT");
           
@@ -334,18 +406,12 @@
           weakSelf.baby.having(weakSelf.connectedPeripheral).connectToPeripherals().discoverServices().discoverCharacteristics().begin(5);
           
           NSLog(@"发现了左蓝牙");
-         // weakSelf.blueLabel.text =@"发现设备";
 
           weakSelf.blueLabel.text = @"Connecting...";
               
 
           
-          return ;
-              
-              
-              
-          
-
+              return ;
       }
       
       }
@@ -354,9 +420,9 @@
       else if ([usermodel isEqualToString:@"right"])
       {
           
-          if ([peripheral.name isEqualToString:@"LM07"]) {
+          if ([peripheral.name isEqualToString:@"HV RIGHT"]) {
               
-                NSLog(@"发现并且开始连接 LM07");
+                NSLog(@"发现并且开始连接 HV RIGHT");
               weakSelf.connectedPeripheral = peripheral;
               
               weakSelf.baby.having(weakSelf.connectedPeripheral).connectToPeripherals().discoverServices().discoverCharacteristics().begin(5);
@@ -366,7 +432,6 @@
               
               weakSelf.blueLabel.text = @"Connecting...";
               
-              NSLog(@"2333232323");
               
               
               
@@ -394,6 +459,55 @@
    
       ];
     
+    
+    
+    [_baby setFilterOnConnectToPeripherals:^BOOL(NSString *peripheralName, NSDictionary *advertisementData, NSNumber *RSSI) {
+        
+        
+        //获取蓝牙模式
+        NSString * usermodel = [kUserDefault objectForKey:kDefaultsUserModel];
+        
+        if ([usermodel isEqualToString:@"left"]) {
+            
+            if ([peripheralName hasSuffix:@"LEFT "] )
+                
+            {
+                return YES;
+                
+            }
+            
+            
+            
+            
+        }
+        
+        
+        else if ([ usermodel isEqualToString:@"right"])
+        {
+            
+            
+            
+            
+            if ([peripheralName hasSuffix:@"RIGHT"] )
+                
+            {
+                
+                NSLog(@"发现右蓝牙1");
+                
+                return YES;
+                
+            }
+            
+            
+        }
+        
+        return NO;
+        
+
+        
+    }];
+    
+    
     //连接蓝牙成功的回调
     [_baby setBlockOnConnected:^(CBCentralManager *central, CBPeripheral *peripheral) {
         
@@ -401,15 +515,15 @@
         
         
         
-        if ([peripheral.name hasPrefix:@"H"]) {
-            weakSelf.blueLabel.text = @"ConnectedL";
+        if ([peripheral.name hasSuffix:@"RIGHT"]) {
+            weakSelf.blueLabel.text = @"ConnectedRight";
             
          
         }
         
         
-    else    if ([peripheral.name hasPrefix:@"L"]) {
-            weakSelf.blueLabel.text = @"ConnectedR";
+    else    if ([peripheral.name hasSuffix:@"LEFT "]) {
+            weakSelf.blueLabel.text = @"ConnectedLeft";
             
             
         }
@@ -438,12 +552,18 @@
     [_baby setBlockOnDisconnect:^(CBCentralManager *central, CBPeripheral *peripheral, NSError *error) {
         NSLog(@"连接断开%@",peripheral.name);
         
-        if ([peripheral.name hasPrefix:@"H"]) {
-            weakSelf.blueLabel.text = @"Disconnected";
+        if ([peripheral.name hasSuffix:@"LEFT "]) {
+            weakSelf.blueLabel.text = @"DisconnectedLeft";
 
         }
         
         
+        
+      else  if ([peripheral.name hasSuffix:@"RIGHT"]) {
+            weakSelf.blueLabel.text = @"DisconnectedRight";
+            
+        }
+
         
     }];
     
@@ -452,7 +572,7 @@
     
     [_baby setBlockOnDiscoverServices:^(CBPeripheral *peripheral, NSError *error) {
         
-        NSLog(@"发现service%@",peripheral.name);
+      
         
         
     }];
@@ -490,6 +610,11 @@
                 
                 
                 NSLog(@"获得了写入特征");
+                
+                
+                //连接上就发一个查询帧
+                [weakSelf sendDataToBlueToothWithcommand:0xa1 temper:0x00 model:0x00 hour:0x00 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x00 ];
+                
                 
                 
                 
@@ -537,14 +662,13 @@
     
     Byte * byte = (Byte * )[recieveData bytes];
     
-    //%s 是 字符数组
-    NSLog(@"byte %s",byte);
+
     
     //那种匿名的快乐  听阴天说什么 在昏暗的想我  阴天快乐
     
     for(int i=0;i<[recieveData length];i++)
         
-        printf("testByte = %d\n",byte[i]);
+        printf("testByte%d = %d\n",i,byte[i]);
     
     
     //判断这个帧是否是蓝牙帧
@@ -608,8 +732,6 @@
         [kUserDefault setObject:temp forKey:defaultTemper];
     }
     
-
-    
      // 这个是判断模式的字节 下标为 6
     Byte model = Recievebyte[6];
     
@@ -619,6 +741,9 @@
         NSLog(@"暖风状态");
         
         [kUserDefault setValue:@"warm" forKey:SelectedModel];
+        
+        self.warnButton.enabled = YES;
+        
         
         self.warnButton.selected = YES;
         
@@ -640,10 +765,15 @@
     else if (model == 0x02)
     {
         
-        NSLog(@"冷风状态1231231231312123123设置冷按钮选中");
+        
+        NSLog(@"冷风状态");
         
         
         [kUserDefault setValue:@"cool" forKey:SelectedModel];
+        
+        
+        self.coolButton.enabled = YES ;
+        
 
         self.coolButton.selected = YES;
 
@@ -662,22 +792,19 @@
         
         self.autoButton.enabled = NO;
         
-        
-        
     }
     //自动
     else if (model == 0x03)
      
     {
-        
-        
         NSLog(@"自动状态");
         
         [kUserDefault setValue:@"auto" forKey:SelectedModel];
-
+        
+        
+        self.autoButton.enabled = YES;
         
         self.autoButton.selected = YES;
-        
         
         //自动模式 上下按钮可以点 左右按钮不可点
         self.upButton.enabled      =YES ;
@@ -693,14 +820,10 @@
         self.warnButton.enabled = NO ;
         
         self.coolButton.enabled = NO ;
-        
-
     }
     //状态关
     else
     {
-        
-        
         //判断选中的状态
         [kUserDefault setValue:@"close" forKey:SelectedModel];
         
@@ -726,11 +849,8 @@
         self.coolButton.enabled = YES ;
         
         self.autoButton.enabled = YES ;
-        
-        
-        
-        
     }
+    
     // 这个是获取温度的字节 下标为8
     
     Byte temper = Recievebyte[8];
@@ -742,7 +862,7 @@
     
     Byte humidity = Recievebyte[9];
     
-    [self.humidityButton  setTitle:[NSString stringWithFormat:@"%dRH",humidity] forState:UIControlStateNormal];
+    [self.humidityButton setTitle:[NSString stringWithFormat:@"%d%%RH",humidity] forState:UIControlStateNormal];
     
 
     
@@ -757,7 +877,201 @@
     [self.clockButton setTitle:[NSString stringWithFormat:@"%d:%d",hour,minute] forState:UIControlStateNormal];
     
     
+    //这个是获取 自动挡温度喜好值 下标为12
+    
+    Byte temperDefault = Recievebyte[12];
+    
+    //字节转化为字符串
+    
+    NSString * temp = [NSString stringWithFormat:@"%hhu",temperDefault];
+    
+    [kUserDefault setObject:temp forKey:defaultTemper];
+
+    
+    //这个是获取风速的的字节 下标为 7  12月 26日
+    
+    Byte windSpeed = Recievebyte[7];
+    
+
+    
+    // 这个是获取 温度档位的字节 下标为 13  12月 26日
+    Byte gear = Recievebyte[13] ;
+    
+    //最终的档位
+    Byte FinnalGear =  (windSpeed-1)*2 + gear ;
+    
+    NSString * gearString = [NSString stringWithFormat:@"T%d",FinnalGear];
+    
+    NSString * fengSpeed = [NSString stringWithFormat:@"F%d",windSpeed ];
+    
+    if ([fengSpeed isEqualToString: @"F7"]) {
+        
+        fengSpeed = @"FMax";
+        
+    }
+    
+    else if ([fengSpeed isEqualToString:@"F1"])
+        
+    {
+        fengSpeed = @"FMin";
+        
+    }
+    
+    
+    if ([gearString isEqualToString:@"T13"]) {
+        gearString = @"TMax";
+    }
+    
+   else if ([gearString isEqualToString:@"T1"]) {
+        gearString = @"TMin";
+    }
+    
+    
+    switch (command) {
+            
+            //温度增加
+            case 0xa2:
+            
+        {
+            [self showLabelWithTitle:gearString Label:self.UPLabel];
+            
+        }
+            
+            break;
+            
+            //温度减少
+            case 0xa3:
+            
+        {
+            
+            [self showLabelWithTitle:gearString Label:self.DownLabel];
+            
+            
+            
+        }
+            
+            break;
+            
+            
+            //风速增加
+            case 0xa4:
+        {
+            [self showLabelWithTitle:fengSpeed Label:self.RightLabel];
+
+        }
+            
+            break ;
+            
+            
+            //风速减少
+            case 0xa5:
+        {
+            [self showLabelWithTitle:fengSpeed Label:self.LeftLabel];
+
+        }
+            
+            
+            break;
+            
+            
+        default:
+            break;
+    }
+    
+    
+    
+    
+    //这个是获取声音状态的字节 下标为14
+    Byte soundState = Recievebyte[14];
+    
+    switch (soundState) {
+        
+            
+            /*
+             0显示关声音关，
+             1显示关声音开，
+             2显示开声音关，
+             3显示开声音开
+             */
+        case 0x00:
+            
+            self.displayBtn.selected = YES;
+            
+            self.soundBtn.selected = YES;
+            
+            
+            break;
+            
+            
+            
+            case 0x01:
+            
+            self.displayBtn.selected = YES;
+            
+            self.soundBtn.selected = NO;
+            
+            break;
+            
+            
+            case 0x02:
+            
+            self.displayBtn.selected = NO;
+            
+            self.soundBtn.selected = YES;
+            
+            break;
+            
+            
+            case 0x03:
+            
+            self.displayBtn.selected = NO;
+            
+            self.soundBtn.selected = NO;
+            
+            break;
+            
+            
+        default:
+            break;
+    }
+    
+    
+    
 }
+
+
+  //    设置弹出的label 的样式
+- (void)showLabelWithTitle:(NSString *)title Label:(UILabel *)label
+
+{
+    label.text = title;
+    
+    [UIView animateWithDuration:1 animations:^{
+        
+        
+        
+        label.alpha = 1 ;
+        
+        
+        
+        
+        
+    } completion:^(BOOL finished) {
+        
+        
+
+        
+        label.alpha = 0 ;
+        
+        
+    }];
+    
+    
+    
+    
+    
+}
+
 #pragma mark - 内部方法
 //初始化
 - (void)setUpViews
@@ -1035,18 +1349,20 @@
     
     
     //温度按钮
-    UIButton *tempButton = [self setupButtonWithBackgroundImage:@"温度块" title:@"113.0℉" tag:21];
+    UIButton *tempButton = [self setupButtonWithBackgroundImage:@"温度块" title:@"0.0℉" tag:21];
     
     [tempButton setTitleColor:[UIColor purpleColor] forState:UIControlStateNormal];
     
     tempButton.imageEdgeInsets = UIEdgeInsetsMake(-2, -2, 0, 0);
     tempButton.titleEdgeInsets = UIEdgeInsetsMake(0, 2, 0, 0);
     [tempButton setImage:[UIImage imageNamed:@"cf转换"] forState:UIControlStateNormal];
-    tempButton.userInteractionEnabled = NO;
+    //打开按钮交互
+    
+    //tempButton.userInteractionEnabled = NO;
     
     self.tempButton = tempButton;
     //湿度按钮
-    UIButton *humidityButton = [self setupButtonWithBackgroundImage:@"湿度快" title:@"75RH" tag:22];
+    UIButton *humidityButton = [self setupButtonWithBackgroundImage:@"湿度快" title:@"00%RH" tag:22];
     
     
     [humidityButton setTitleColor:[UIColor purpleColor] forState:UIControlStateNormal];
@@ -1054,6 +1370,7 @@
     humidityButton.titleEdgeInsets = UIEdgeInsetsMake(0, 2, 0, 0);
     [humidityButton setImage:[UIImage imageNamed:@"湿度"] forState:UIControlStateNormal];
     humidityButton.userInteractionEnabled = NO;
+    
     self.humidityButton = humidityButton;
     
     //闹钟按钮
@@ -1072,8 +1389,198 @@
     
     //about HV Station按钮
     UIButton *hvStationButton = [self setupButtonWithBackgroundImage:@"HV-Station" title:@"About HV Station" tag:25];
+    
     self.hvStationButton = hvStationButton;
+    
+    
+    
+    #pragma  mark  - 声音 显示按钮 的添加
+    
+    
+  self.soundBtn = [[ UIButton alloc]init];
+    
+    [self.soundBtn setImage:[UIImage imageNamed:@"声音开"] forState:UIControlStateNormal];
+    
+    [self.soundBtn setImage:[UIImage imageNamed:@"声音关"] forState:UIControlStateSelected];
+    
+    
+    //默认关
+    self.soundBtn.selected = YES;
+    
+    
+    self.displayBtn = [[UIButton alloc]init];
+    
+    [self.displayBtn   setImage:[UIImage imageNamed:@"显示开"] forState:UIControlStateNormal];
+    
+    [self.displayBtn setImage:[UIImage imageNamed:@"显示关"] forState:UIControlStateSelected];
+    
+    self.displayBtn.selected = YES;
+
+    
+    
+    [self.soundBtn addTarget:self action:@selector(soundClick:) forControlEvents:UIControlEventTouchUpInside];
+    
+    [self.displayBtn addTarget:self action:@selector(displayClick:) forControlEvents:UIControlEventTouchUpInside];
+    
+    
+    
+    [self.view addSubview:self.soundBtn];
+    
+    [self.view addSubview:self.displayBtn];
+    
+#pragma  mark  -  上下左右四个提示label的设置  
+    
+    self.  UPLabel = [[UILabel alloc]init];
+    self.DownLabel = [[UILabel alloc]init];
+    self.LeftLabel = [[UILabel alloc]init];
+    self.RightLabel =[[UILabel alloc]init];
+    
+     [self setAnimLabel:self.UPLabel];
+     [self setAnimLabel:self.DownLabel];
+     [self setAnimLabel:self.LeftLabel];
+     [self setAnimLabel:self.RightLabel];
+    
 }
+
+
+#pragma  mark  - 声音点击
+
+-(void)soundClick: (UIButton *)btn
+{
+    //选中就是关
+    if (btn.selected && self.displayBtn.selected) {
+        
+        //显示关声音开2
+        [self sendDataToBlueToothWithcommand:0xaa temper:0x00 model:0x00 hour:0x00 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x01];
+        
+        btn.selected =NO;
+        
+        
+        NSLog(@"显示关声音开");
+        
+        
+    }
+    
+    //显示关声音关 0
+    else if (!btn.selected  && self.displayBtn.selected   )
+    {
+        [self sendDataToBlueToothWithcommand:0xaa temper:0x00 model:0x00 hour:0x00 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x00];
+        
+        btn.selected = YES;
+        
+        NSLog(@"显示关声音关");
+
+        
+    }
+    
+    //声音开 显示开 3
+    else if (btn.selected && !self.displayBtn.selected){
+        
+        [self sendDataToBlueToothWithcommand:0xaa temper:0x00 model:0x00 hour:0x00 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x03];
+        
+        btn.selected = NO;
+        
+        NSLog(@"显示开声音开");
+
+        
+    }
+    
+    //显示关声音开 1
+    else
+    {
+        [self sendDataToBlueToothWithcommand:0xaa temper:0x00 model:0x00 hour:0x00 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x02];
+        
+        btn.selected = YES;
+        NSLog(@"显示关声音关");
+
+    }
+    
+    
+}
+
+#pragma  mark  - 显示点击
+-(void)displayClick: (UIButton *)btn
+{
+    
+    
+    //选中就是关
+    if (btn.selected && self.soundBtn.selected) {
+        
+        //显示开声音关 2
+        [self sendDataToBlueToothWithcommand:0xaa temper:0x00 model:0x00 hour:0x00 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x02];
+        
+        [btn setSelected:NO];
+        
+        NSLog(@"显示开声音关213213213");
+
+        
+        
+    }
+    
+    //显示关声音关 2
+    else if (!btn.selected  && self.soundBtn.selected   )
+    {
+        [self sendDataToBlueToothWithcommand:0xaa temper:0x00 model:0x00 hour:0x00 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x00];
+        
+        btn.selected = YES;
+        NSLog(@"显示关声音关213213213");
+
+        
+    }
+    
+    //显示开声音开 3
+    else if (btn.selected && !self.soundBtn.selected){
+        
+        [self sendDataToBlueToothWithcommand:0xaa temper:0x00 model:0x00 hour:0x00 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x03];
+        
+        btn.selected = NO;
+        NSLog(@"显示开声音开213213213");
+
+        
+    }
+    
+    //显示关声音开 1
+    else
+    {
+        [self sendDataToBlueToothWithcommand:0xaa temper:0x00 model:0x00 hour:0x00 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x01];
+        
+        btn.selected = YES;
+        
+         NSLog(@"显示关声音开213213213");
+    }
+
+}
+
+
+
+-(void)setAnimLabel : (UILabel *)label
+{
+    label.text = @"F11";
+    
+    label.textAlignment = NSTextAlignmentCenter;
+    label.font = [UIFont systemFontOfSize:17];
+    label.textColor = [UIColor purpleColor];
+    
+    label.layer.cornerRadius = 5;
+    label.layer.masksToBounds = YES;
+
+    
+    label.backgroundColor = [UIColor whiteColor];
+    
+
+    
+    
+    
+    //隐藏 起来
+    label.alpha = 0 ;
+    
+    
+    [self.view addSubview:label];
+    
+    
+}
+
+
 //设置按钮
 - (UIButton *)setupButtonWithBackgroundImage:(NSString *)image title:(NSString *)title  tag:(NSInteger)tag
 {
@@ -1088,6 +1595,10 @@
     [self.view addSubview:btn];
     return btn;
 }
+
+
+
+#pragma  mark - 布局方法
 
 - (void)viewDidLayoutSubviews
 {
@@ -1183,7 +1694,7 @@
 
     //life按钮
     [self.lifeButton mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.centerY.equalTo(self.middleImageView);
+       // make.centerY.equalTo(self.middleImageView);
         make.left.equalTo(self.view).offset(65 * HRCommonScreenW);
        // make.top.equalTo(self.view).offset(HRCommonScreenH *86);
         //86 + 110
@@ -1234,7 +1745,7 @@
     //中间的logo图片
     [self.middleImageView mas_makeConstraints:^(MASConstraintMaker *make) {
         make.centerX.equalTo(self.view);
-        make.top.equalTo(self.view).offset(HRCommonScreenH * 95);
+     //   make.top.equalTo(self.view).offset(HRCommonScreenH * 95);
         make.top.equalTo(self.view).offset(HRCommonScreenH * 95 + 110 *HRCommonScreenH);
 
         make.height.mas_equalTo(30 *HRCommonScreenH);
@@ -1274,7 +1785,63 @@
         make.width.mas_equalTo(68 *HRCommonScreenW);
     }];
     
-    //wam按钮
+    //12月 26  添加上下左右弹出来的label
+    
+    //上label
+    
+    [self.UPLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+        
+        make.top.equalTo(self.upButton).offset(-29);
+        make.centerX.equalTo(self.upButton);
+        make.width.mas_equalTo(50 * HRCommonScreenW);
+        make.height.mas_equalTo(25);
+        
+        
+        
+    }];
+    
+    //下label
+
+    
+    [self.DownLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+        
+        make.top.equalTo(self.downButton).offset(-29);
+        make.centerX.equalTo(self.downButton);
+        make.width.mas_equalTo(50 * HRCommonScreenW);
+        make.height.mas_equalTo(25);
+
+        
+    }];
+
+    //左label
+
+    [self.LeftLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+        
+        make.top.equalTo(self.lifeFsButton).offset(-29);
+        make.centerX.equalTo(self.lifeFsButton);
+        make.width.mas_equalTo(50 * HRCommonScreenW);
+        make.height.mas_equalTo(25);
+
+        
+    }];
+
+    
+    //右label
+
+    [self.RightLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+        
+        make.top.equalTo(self.rightFsButton).offset(-29);
+        make.centerX.equalTo(self.rightFsButton);
+        make.width.mas_equalTo(50 * HRCommonScreenW);
+        make.height.mas_equalTo(25);
+
+        
+    }];
+
+    
+    
+    
+    //warm按钮
     [self.warnButton mas_makeConstraints:^(MASConstraintMaker *make) {
         make.left.equalTo(self.view).offset(72 *HRCommonScreenW);
         make.top.equalTo(self.view).offset(HRCommonScreenH *347+ 120 *HRCommonScreenH);
@@ -1320,6 +1887,39 @@
         make.height.mas_equalTo(49 *HRCommonScreenH);
         make.width.mas_equalTo(188 *HRCommonScreenW);
     }];
+    
+    
+    [self.soundBtn mas_makeConstraints:^(MASConstraintMaker *make) {
+        
+        
+         make.left.equalTo(self.view).offset(20 *HRCommonScreenW);
+
+        make.centerY.equalTo(self.autoButton);
+        
+        make.height.mas_equalTo(40 * HRCommonScreenH);
+        make.width.mas_equalTo(53 * HRCommonScreenW);
+        
+        
+        
+    }];
+    
+    
+    [self.displayBtn mas_makeConstraints:^(MASConstraintMaker *make) {
+        
+        
+        
+        make.right.equalTo(self.view).offset(-20 *HRCommonScreenW);
+        
+        make.centerY.equalTo(self.autoButton);
+        make.height.mas_equalTo(40 * HRCommonScreenH);
+        make.width.mas_equalTo(53 * HRCommonScreenW);
+
+        
+    }];
+    
+    
+    
+    
 }
 
 #pragma mark - UI事件 点击按钮发送控制帧
@@ -1338,33 +1938,23 @@
           
         //left
           
-           [kUserDefault setValue:@"Left" forKey:kDefaultsUserModel];
-
-          
+           [kUserDefault setValue:@"left" forKey:kDefaultsUserModel];
           
           //先判断这个按钮是不是选中状态，如果是选中状态 点击这个按钮不处理任何事件
           
           
           if (self.lifeButton.selected ) {
-              
-              
+        
               NSLog(@"DoNothing");
               
           }
-          
-          
           else
           {
               NSLog(@"first selected");
               
               //只有第一次切换的时候才执行更换蓝牙的方法
               
-              
-              
               //断开连接 蓝牙 然后 重新扫描 连接右边的蓝牙
-              
-              
-              
               NSString * userModel = [kUserDefault objectForKey:kDefaultsUserModel];
               
               
@@ -1375,29 +1965,16 @@
               [_baby cancelAllPeripheralsConnection];
               
              // [_baby cancelPeripheralConnection:self.connectedPeripheral];
-              
-              
               //设置委托后直接可以使用，无需等待CBCentralManagerStatePoweredOn状态。
               //扫描十秒后停止
-              
-              
-              
               _baby.scanForPeripherals().begin().stop(60);
           }
+        
+        //先把左按钮设为选中状态  取消右按钮选中状态 然后改变选中蓝牙 把选中状态本地化
           
-
-        
-        
-         //先把左按钮设为选中状态  取消右按钮选中状态 然后改变选中蓝牙 把选中状态本地化
-        
-        
         self.rightButton.selected = NO;
-        
-        self.lifeButton.selected = YES ;
-        
-        
           
-
+        self.lifeButton.selected = YES ;
           
     }
 #pragma  mark - 切换到右蓝牙的方法
@@ -1410,10 +1987,6 @@
         //先把右按钮设为选中状态  取消左按钮选中状态 然后改变选中蓝牙
 
         [kUserDefault setValue:@"right" forKey:kDefaultsUserModel];
-          
-         
-          
-          
           
           //先判断这个按钮是不是选中状态，如果是选中状态 点击这个按钮不处理任何事件
           
@@ -1468,6 +2041,9 @@
         
 
     }
+    
+    
+#pragma mark - 上按钮方法
     else if (button.tag == 12) {
         //上
         
@@ -1480,7 +2056,16 @@
             
             // command 0xa2 温度增加   model 0x01 暖风模式
             
-            [self sendDataToBlueToothWithcommand:0xa2 temper:0x00 model:0x01 hour:0x00 miniute:0x00 temperFavor:0x00];
+            [self sendDataToBlueToothWithcommand:0xa2 temper:0x00 model:0x01 hour:0x00 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x00];
+            
+            
+            
+            
+            //弹出一个弹窗 显示风速档位
+            
+            
+            
+            
             
         }
         
@@ -1512,7 +2097,12 @@
        // [self setUpBtnClick:button];
         
         
-    }else if (button.tag == 13) {
+    }
+    
+#pragma mark - 下按钮方法
+
+    
+    else if (button.tag == 13) {
         //下
         
         NSString * modelString = [kUserDefault objectForKey:SelectedModel];
@@ -1525,7 +2115,7 @@
             
             
             
-            [self sendDataToBlueToothWithcommand:0xa2 temper:0x00 model:0x01 hour:0x00 miniute:0x00 temperFavor:0x00];
+            [self sendDataToBlueToothWithcommand:0xa3 temper:0x00 model:0x01 hour:0x00 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x00];
             
             
             
@@ -1557,7 +2147,12 @@
         
         
        // [self setUpBtnClick:button];
-    }else if (button.tag == 14) {
+    }
+    
+#pragma mark - 左按钮方法
+
+    
+    else if (button.tag == 14) {
         //FS左
         
         
@@ -1571,7 +2166,7 @@
             
             
             
-            [self sendDataToBlueToothWithcommand:0xa5 temper:0x00 model:0x01 hour:0x00 miniute:0x00 temperFavor:0x00];
+            [self sendDataToBlueToothWithcommand:0xa5 temper:0x00 model:0x01 hour:0x00 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x00];
             
             
             
@@ -1586,14 +2181,19 @@
             // command 0xa5 风速减少  model 0x03 自动模式
             
             
-            [self sendDataToBlueToothWithcommand:0xa5 temper:0x00 model:0x02 hour:0x00 miniute:0x00 temperFavor:0x00];
+            [self sendDataToBlueToothWithcommand:0xa5 temper:0x00 model:0x02 hour:0x00 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x00];
             
         }
 
         
         
-        //[self setUpBtnClick:button];
-    }else if (button.tag == 15) {
+
+    }
+    
+    
+#pragma mark - 右按钮方法
+
+    else if (button.tag == 15) {
         
         //FS右
         
@@ -1607,7 +2207,7 @@
             
             
             
-            [self sendDataToBlueToothWithcommand:0xa4 temper:0x00 model:0x01 hour:0x00 miniute:0x00 temperFavor:0x00];
+            [self sendDataToBlueToothWithcommand:0xa4 temper:0x00 model:0x01 hour:0x00 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x00];
             
             
             
@@ -1622,16 +2222,18 @@
             // command 0xa4 风速增加  model 0x02 冷风模式
             
             
-            [self sendDataToBlueToothWithcommand:0xa4 temper:0x00 model:0x02 hour:0x00 miniute:0x00 temperFavor:0x00];
+            [self sendDataToBlueToothWithcommand:0xa4 temper:0x00 model:0x02 hour:0x00 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x00];
             
         }
         
 
-      //  [self setUpBtnClick:button];
-    }else if (button.tag == 16) {
+    }
+    
+#pragma mark - 暖风状态
+    else if (button.tag == 16) {
         
         
-        //warn 都可以点击
+        //warm 都可以点击
         
         
         //如果是按钮没选中状态下  点击这个按钮让按钮成为选中状态  然后发送 暖风控制帧
@@ -1647,7 +2249,7 @@
                 //没设置过
                 
                 // command 0xa6 功能选择  model 0x01 暖风模式 暖风默认定时7小时
-                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x01 hour:0x09 miniute:0x00 temperFavor:0x00];
+                [self sendDataToBlueToothWithcommand:0xa6 temper:0x12 model:0x01 hour:0x09 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x00];
                 
             }
             
@@ -1655,7 +2257,7 @@
                 //设置过定时 按照定时来
                 
                 // command 0xa6 功能选择  model 0x01 暖风模式 暖风默认定时7小时
-                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x01 hour:[self.setedHour intValue] miniute:[self.setedMinute intValue] temperFavor:0x00];
+                [self sendDataToBlueToothWithcommand:0xa6 temper:0x12 model:0x01 hour:[self.setedHour intValue] miniute:[self.setedMinute intValue] temperFavor:0x00 gear:0x00 soundDisplay:0x00];
             }
 
             
@@ -1672,23 +2274,25 @@
             
             button.selected = NO;
             
-            [self sendDataToBlueToothWithcommand:0xa7 temper:0x22 model:0x01 hour:0x09 miniute:0x33 temperFavor:0x00];
+            [self sendDataToBlueToothWithcommand:0xa7 temper:0x00 model:0x01 hour:0x09 miniute:0x33 temperFavor:0x00 gear:0x00 soundDisplay:0x00];
             
             
         }
         
         
         
-      //  [self setupEnabelStatusButton:button upYes:YES lifeFsYes:YES];
-        //斌添加 这里加一个第二次
         
-    }else if (button.tag == 17) {
+    }
+    
+    
+#pragma mark 冷风状态
+    else if (button.tag == 17) {
         
         //cool 上下可以点击 左右不可以点击
         
         
         //冷风状态
-        //如果是按钮没选中状态下  点击这个按钮让按钮成为选中状态  然后发送 冷风控制帧 冷风定时默认8小时
+        //如果是按钮没选中状态下  点击这个按钮让按钮成为选中状态  然后发送 冷风控制帧 冷风定时默认9小时
 
         if (!button.isSelected) {
             
@@ -1699,7 +2303,7 @@
                 //没设置过
                 
                 // command 0xa6 功能选择  model 0x02 冷风模式 冷风默认定时8小时
-                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x02 hour:0x09 miniute:0x00 temperFavor:0x00];
+                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x02 hour:0x09 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x00];
                 
             }
             
@@ -1707,7 +2311,7 @@
                 //设置过定时 按照定时来
                 
                 // command 0xa6 功能选择  model 0x02 冷风模式 按照定时来
-                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x02 hour:[self.setedHour intValue] miniute:[self.setedMinute intValue] temperFavor:0x00];
+                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x02 hour:[self.setedHour intValue] miniute:[self.setedMinute intValue] temperFavor:0x00 gear:0x00 soundDisplay:0x00];
             }
             
 
@@ -1725,23 +2329,33 @@
 
             button.selected = NO;
             
-            [self sendDataToBlueToothWithcommand:0xa7 temper:0x22 model:0x02 hour:0x09 miniute:0x33 temperFavor:0x00];
+            [self sendDataToBlueToothWithcommand:0xa7 temper:0x22 model:0x02 hour:0x09 miniute:0x33 temperFavor:0x00 gear:0x00 soundDisplay:0x00];
             
 
         }
         
        // [self setupEnabelStatusButton:button upYes:NO lifeFsYes:YES];
         
-    }else if (button.tag == 18) {
+    }
+    
+#pragma mark - 自动状态
+    
+    else if (button.tag == 18) {
         
         //auto 上下可以点击 左右不可以点击
         
-        //冷风状态
+        
         //如果是按钮没选中状态下  点击这个按钮让按钮成为选中状态  然后发送 冷风控制帧
         
         if (!button.isSelected) {
             
            
+            
+            
+            NSString * defTemper = [kUserDefault objectForKey:defaultTemper];
+            
+            int temper = [defTemper intValue];
+            
             
             button.selected = YES;
             
@@ -1750,7 +2364,7 @@
                 //没设置过
                 
                // command 0xa6 功能选择  model 0x03 自动模式 自动默认定时12小时
-                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x03 hour:12 miniute:0x00 temperFavor:0x00];
+                [self sendDataToBlueToothWithcommand:0xa6 temper:temper model:0x03 hour:0x09 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x00];
                 
             }
             
@@ -1758,7 +2372,7 @@
                 //设置过定时 按照定时来
                 
                 // command 0xa6 功能选择  model 0x03 自动模式 根据系统设置的自动时分上传
-                [self sendDataToBlueToothWithcommand:0xa6 temper:0x22 model:0x03 hour:[self.setedHour intValue] miniute:[self.setedMinute intValue]temperFavor:0x00] ;
+                [self sendDataToBlueToothWithcommand:0xa6 temper:temper model:0x03 hour:[self.setedHour intValue] miniute:[self.setedMinute intValue]temperFavor:0x00 gear:0x00 soundDisplay:0x00] ;
             }
             
 
@@ -1776,23 +2390,69 @@
             
             button.selected = NO;
             
-            [self sendDataToBlueToothWithcommand:0xa7 temper:0x22 model:0x03 hour:0x10 miniute:0x33 temperFavor:0x00];
+            [self sendDataToBlueToothWithcommand:0xa7 temper:0x22 model:0x03 hour:0x09 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x00];
             
             
         }
-
-        
-        
-        
-       // [self setupEnabelStatusButton:button upYes:YES lifeFsYes:NO];
-        
     }
     
     else if (button.tag == 19)
     {
         NSLog(@"cf");
         
+        
     }
+    
+    
+     else if (button.tag == 21)
+     {
+         if ([self.tempButton.titleLabel.text hasSuffix:@"℉"]) {
+             
+             //字符串的长度
+             
+             NSUInteger length = self.tempButton.titleLabel.text.length;
+             
+             
+             //华氏温度 飞轮海
+             float Fahrenheit =  [[self.tempButton.titleLabel.text substringToIndex:length-1 ] floatValue];
+             
+             
+             
+           //摄氏温度      华氏温度换算为摄氏温度
+             
+           float  Celsius  =  (Fahrenheit - 32)/1.8;
+             
+             
+             NSString * CelsiusString = [NSString stringWithFormat:@"%.1f℃",Celsius];
+             
+             [self.tempButton setTitle:CelsiusString forState:UIControlStateNormal];
+             
+         }
+         
+         
+         else
+         {
+             
+             
+             NSUInteger length = self.tempButton.titleLabel.text.length;
+             
+             
+             //摄氏温度
+             float Celsius =  [[self.tempButton.titleLabel.text substringToIndex:length-1 ] floatValue];
+             
+             
+             
+             //华氏温度 飞轮海      摄氏温度换算为华氏温度
+             
+             float  Fahrenheit  =  Celsius * 1.8 + 32.0;
+             
+             
+             NSString * FahrenheitString = [NSString stringWithFormat:@"%.1f℉",Fahrenheit];
+             
+             
+             [self.tempButton setTitle: FahrenheitString forState:UIControlStateNormal ] ;
+         }
+     }
     
  #pragma mark - 定时设置
     else if (button.tag == 23)
@@ -1885,7 +2545,7 @@
 
             //    NSString * model = [kUserDefault objectForKey:SelectedModel];
                 
-                [self sendDataToBlueToothWithcommand:0xa8 temper:0x00 model:0x00 hour:[self.setedHour intValue] miniute:[self.setedMinute intValue] temperFavor:0x00];
+                [self sendDataToBlueToothWithcommand:0xa8 temper:0x00 model:0x00 hour:[self.setedHour intValue] miniute:[self.setedMinute intValue] temperFavor:0x00 gear:0x00 soundDisplay:0x00];
             }
           
             
@@ -1899,25 +2559,16 @@
         
         RegisterController *RVC = [[RegisterController alloc] init];
         
-        //ErrorController *errorVC = [[ErrorController alloc] init];
         [self.navigationController pushViewController:RVC animated:YES];
     }
     
     else if (button.tag == 25)
     {
-        
-        
         FunctionController *funVC = [[FunctionController alloc]init];
-        
         
         [self.navigationController pushViewController:funVC animated:YES];
         
     }
-    
-    
-   
-    
-    
     
 }
 - (void)setUpBtnClick:(UIButton *)button
@@ -2048,35 +2699,53 @@
     [self.popVView addSubview:buttonView];
     
     CGFloat btnH = HRUIScreenH * 0.5 / 5;
+    
+    
     for (int i = 0; i < 5; i++) {
+        
+        
         UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
         button.backgroundColor = [UIColor blueColor];
-        button.tag = i + 68;
+       
         button.frame = CGRectMake(0, btnH * i, 40, btnH);
         button.titleLabel.font = [UIFont fontWithName:HRFontStyle size:18];
         [button setTitleColor:[UIColor colorWithRed:51 / 255.0 green:51 / 255.0  blue:51 / 255.0  alpha:1.0] forState:UIControlStateNormal];
         
         if (i == 0) {
-            [button setTitle:@"68℉" forState:UIControlStateNormal];
+            
+            button.tag = 77 ;
+            
+            [button setTitle:@"77℉" forState:UIControlStateNormal];
             button.backgroundColor = [UIColor colorWithRed:255 / 255.0 green:250 / 255.0 blue:228 / 255.0 alpha:1.0];
         }else if (i == 1)
         {
-            [button setTitle:@"69℉" forState:UIControlStateNormal];
+            
+            button.tag = 82 ;
+            
+            [button setTitle:@"82℉" forState:UIControlStateNormal];
             button.backgroundColor = [UIColor colorWithRed:254 / 255.0 green:242 / 255.0 blue:183 / 255.0 alpha:1.0];
         }else if (i == 2)
         {
+            button .tag = 86 ;
             
-            [button setTitle:@"70℉" forState:UIControlStateNormal];
+            
+            [button setTitle:@"86℉" forState:UIControlStateNormal];
             button.backgroundColor = [UIColor colorWithRed:251 / 255.0 green:228 / 255.0 blue:122 / 255.0 alpha:1.0];
         }else if (i == 3)
         {
             
-            [button setTitle:@"71℉" forState:UIControlStateNormal];
+            button .tag = 91 ;
+            
+            
+            [button setTitle:@"91℉" forState:UIControlStateNormal];
             button.backgroundColor = [UIColor colorWithRed:245 / 255.0 green:210 / 255.0 blue:46 / 255.0 alpha:1.0];
         }else if (i == 4)
         {
             
-            [button setTitle:@"72℉" forState:UIControlStateNormal];
+            button.tag = 97;
+            
+            
+            [button setTitle:@"97℉" forState:UIControlStateNormal];
             button.backgroundColor = [UIColor colorWithRed:245 / 255.0 green:168 / 255.0 blue:46 / 255.0 alpha:1.0];
         }
         
@@ -2089,151 +2758,11 @@
         rect.origin.x = HRUIScreenW * 0.5- 21;
         buttonView.frame = rect;
     } completion:nil];
-    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapPopViewClick:)];
+    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapPopViewClick)];
     tap.delegate = self;
     [self.popVView addGestureRecognizer:tap];
     
     [[UIApplication sharedApplication].keyWindow addSubview:self.popVView];
-}
-
-///弹出黄色横框 tag 41- 47
-- (void)showPopWMune
-{
-    self.popWView = [[UIView alloc] initWithFrame:self.view.bounds];
-    
-    self.popWView .backgroundColor = [UIColor clearColor];
-    UIView *buttonView = [[UIView alloc] initWithFrame:CGRectMake(HRUIScreenW, HRUIScreenH *0.5, HRUIScreenW * 0.8, 40)];
-    buttonView.backgroundColor = [UIColor whiteColor];
-    
-    [self.popWView addSubview:buttonView];
-    
-    CGFloat btnW = HRUIScreenW * 0.8 / 7;
-    for (int i = 0; i < 7; i++) {
-        UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
-        button.backgroundColor = [UIColor blueColor];
-        button.tag = i + 1;
-        button.frame = CGRectMake(btnW * i, 0, btnW, 40);
-        button.titleLabel.font = [UIFont fontWithName:HRFontStyle size:18];
-        [button setTitleColor:[UIColor colorWithRed:51 / 255.0 green:51 / 255.0  blue:51 / 255.0  alpha:1.0] forState:UIControlStateNormal];
-        
-        if (i == 0) {
-            [button setTitle:@"30%" forState:UIControlStateNormal];
-            button.backgroundColor = [UIColor colorWithRed:254 / 255.0 green:250 / 255.0 blue:233 / 255.0 alpha:1.0];
-        }else if (i == 1)
-        {
-            [button setTitle:@"40%" forState:UIControlStateNormal];
-            button.backgroundColor = [UIColor colorWithRed:255 / 255.0 green:247 / 255.0 blue:205 / 255.0 alpha:1.0];
-        }else if (i == 2)
-        {
-            
-            [button setTitle:@"50%" forState:UIControlStateNormal];
-            button.backgroundColor = [UIColor colorWithRed:253 / 255.0 green:236 / 255.0 blue:159 / 255.0 alpha:1.0];
-        }else if (i == 3)
-        {
-            
-            [button setTitle:@"60%" forState:UIControlStateNormal];
-            button.backgroundColor = [UIColor colorWithRed:254 / 255.0 green:224 / 255.0 blue:83 / 255.0 alpha:1.0];
-        }else if (i == 4)
-        {
-            
-            [button setTitle:@"70%" forState:UIControlStateNormal];
-            button.backgroundColor = [UIColor colorWithRed:255 / 255.0 green:204 / 255.0 blue:25 / 255.0 alpha:1.0];
-        }else if (i == 5)
-        {
-            
-            [button setTitle:@"80%" forState:UIControlStateNormal];
-            button.backgroundColor = [UIColor colorWithRed:245 / 255.0 green:174 / 255.0 blue:49 / 255.0 alpha:1.0];
-        }else if (i == 6)
-        {
-            
-            [button setTitle:@"90%" forState:UIControlStateNormal];
-            button.backgroundColor = [UIColor colorWithRed:251 / 255.0 green:161 / 255.0 blue:3 / 255.0 alpha:1.0];
-        }
-        [button addTarget:self action:@selector(colorButtonClick:) forControlEvents:UIControlEventTouchUpInside];
-        [buttonView addSubview:button];
-    }
-    
-    [UIView animateWithDuration:0.5 delay:0.0 usingSpringWithDamping:0.0 initialSpringVelocity:0.0 options:0 animations:^{
-        CGRect rect = buttonView.frame;
-        rect.origin.x = HRUIScreenW * 0.1;
-        buttonView.frame = rect;
-    } completion:nil];
-    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapPopViewClick:)];
-    tap.delegate = self;
-    [self.popWView addGestureRecognizer:tap];
-    
-    [[UIApplication sharedApplication].keyWindow addSubview:self.popWView];
-}
-
-///弹出绿色横框 tag 1- 7
-- (void)showPopMune
-{
-    
-    self.popView = [[UIView alloc] initWithFrame:self.view.bounds];
-    
-    self.popView .backgroundColor = [UIColor clearColor];
-    UIView *buttonView = [[UIView alloc] initWithFrame:CGRectMake(HRUIScreenW , HRUIScreenH *0.5, HRUIScreenW * 0.8, 40)];
-    buttonView.backgroundColor = [UIColor whiteColor];
-    
-    [self.popView addSubview:buttonView];
-    
-    CGFloat btnW = HRUIScreenW * 0.8 / 7;
-    for (int i = 0; i < 7; i++) {
-        UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
-        button.backgroundColor = [UIColor blueColor];
-        button.tag = i + 1;
-        button.frame = CGRectMake(btnW * i, 0, btnW, 40);
-        button.titleLabel.font = [UIFont fontWithName:HRFontStyle size:18];
-        [button setTitleColor:[UIColor colorWithRed:51 / 255.0 green:51 / 255.0  blue:51 / 255.0  alpha:1.0] forState:UIControlStateNormal];
-        
-        if (i == 0) {
-            [button setTitle:@"30%" forState:UIControlStateNormal];
-            button.backgroundColor = [UIColor colorWithRed:216 / 255.0 green:244 / 255.0 blue:227 / 255.0 alpha:1.0];
-        }else if (i == 1)
-        {
-            [button setTitle:@"40%" forState:UIControlStateNormal];
-            button.backgroundColor = [UIColor colorWithRed:183 / 255.0 green:241 / 255.0 blue:205 / 255.0 alpha:1.0];
-        }else if (i == 2)
-        {
-            
-            [button setTitle:@"50%" forState:UIControlStateNormal];
-            button.backgroundColor = [UIColor colorWithRed:136 / 255.0 green:243 / 255.0 blue:177 / 255.0 alpha:1.0];
-        }else if (i == 3)
-        {
-            
-            [button setTitle:@"60%" forState:UIControlStateNormal];
-            button.backgroundColor = [UIColor colorWithRed:74 / 255.0 green:239 / 255.0 blue:137 / 255.0 alpha:1.0];
-        }else if (i == 4)
-        {
-            
-            [button setTitle:@"70%" forState:UIControlStateNormal];
-            button.backgroundColor = [UIColor colorWithRed:50 / 255.0 green:225 / 255.0 blue:116 / 255.0 alpha:1.0];
-        }else if (i == 5)
-        {
-            
-            [button setTitle:@"80%" forState:UIControlStateNormal];
-            button.backgroundColor = [UIColor colorWithRed:2 / 255.0 green:195 / 255.0 blue:75 / 255.0 alpha:1.0];
-        }else if (i == 6)
-        {
-            
-            [button setTitle:@"90%" forState:UIControlStateNormal];
-            button.backgroundColor = [UIColor colorWithRed:0 / 255.0 green:164 / 255.0 blue:62 / 255.0 alpha:1.0];
-        }
-        [button addTarget:self action:@selector(colorButtonClick:) forControlEvents:UIControlEventTouchUpInside];
-        [buttonView addSubview:button];
-    }
-    
-    [UIView animateWithDuration:0.5 delay:0.0 usingSpringWithDamping:0.0 initialSpringVelocity:0.0 options:0 animations:^{
-        CGRect rect = buttonView.frame;
-        rect.origin.x = HRUIScreenW * 0.1;
-        buttonView.frame = rect;
-        
-    } completion:nil];
-    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapPopViewClick:)];
-    tap.delegate = self;
-    [self.popView addGestureRecognizer:tap];
-    
-    [[UIApplication sharedApplication].keyWindow addSubview:self.popView];
 }
 
 
@@ -2244,25 +2773,25 @@
 {
     NSLog(@"btn.tag%ld",(long)btn.tag);
     
-    // command 0xa9 自动模式改变默认温度   model 0x03 自动模式
+        // command 0xa9 自动模式改变默认温度   model 0x03 自动模式
     
-    //加个弹窗  是否改变默认温度
+       // 加个弹窗  是否改变默认温度
     
-   // 68 == 44
+      // 68 == 44
     
-   // 72 == 48
+     // 72 == 48
     
-      [self sendDataToBlueToothWithcommand:0xa9 temper:btn.tag model:0x03 hour:0x00 miniute:0x00 temperFavor:0x00];
+      [self sendDataToBlueToothWithcommand:0xa9 temper:btn.tag model:0x03 hour:0x00 miniute:0x00 temperFavor:0x00 gear:0x00 soundDisplay:0x00];
     
-    [self performSelector:@selector(tapPopViewClick:)];
+    
+    [self performSelector:@selector(tapPopViewClick)];
     
     
 
 }
-- (void)tapPopViewClick:(UITapGestureRecognizer *)tap
-{
+- (void)tapPopViewClick{
     for (UIView *allView in [UIApplication sharedApplication].keyWindow.subviews) {
-        if ([allView isEqual:self.popView] || [allView isEqual:self.popVView] || [allView isEqual:self.popWView]) {
+        if ( [allView isEqual:self.popVView] ) {
             [UIView animateWithDuration:0.25 delay:0.0 options:UIViewAnimationOptionCurveEaseIn animations:^{
                 NSLog(@"allView-NSStringFromClass%@", NSStringFromCGRect(allView.frame));
                 allView.alpha = 0.0;

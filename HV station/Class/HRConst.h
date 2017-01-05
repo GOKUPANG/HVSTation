@@ -35,7 +35,7 @@ UIKIT_EXTERN CGFloat const HRNavH;
 
 /** 判断是否第一次登陆 */
 #define firstLaunch @"firstLaunch"
-/** 设置界面默认温度  */
+/** 设置界面默认温度  自动挡温度喜好值 */
 #define defaultTemper  @"defaultTemper"
 
 /** 保存的用户名Key */

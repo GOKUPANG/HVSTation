@@ -210,6 +210,7 @@ static NSString *const cellID = @"cellID";
         make.right.equalTo(self).offset(-20 *HRCommonScreenH);
         make.bottom.equalTo(self).offset(- 69);
     }];
+    
     //about HV Station按钮
     [self.hvStationButton mas_makeConstraints:^(MASConstraintMaker *make) {
         make.left.equalTo(self).offset(188 *HRCommonScreenW);
